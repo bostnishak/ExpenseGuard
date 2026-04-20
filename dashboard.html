@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ExpenseGuard — Yönetici Paneli</title>
+  <meta name="description" content="Kurumsal gider yönetimi ve fraud tespit dashboard'u. Departman bütçelerini izleyin, yüksek riskli fişleri onaylayın." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23f59e0b'/%3E%3Cpath d='M16 6L6 11l10 5 10-5-10-5zM6 21l10 5 10-5M6 16l10 5 10-5' stroke='%230f0a06' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+</head>
+<body>
+
+<!-- ══ SESSION CHECK — redirect to login.html if not logged in ══ -->
+<script>
+  (function() {
+    const session = localStorage.getItem('eg_session');
+    if (!session) {
+      window.location.href = 'login.html';
+      return;
+    }
+  })();
+</script>
+
+<!-- ══ DASHBOARD SHELL ═════════════════════════════════════════ -->
+<div id="dashApp" class="dash-app">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">EG</div>
+      <span>Expense<strong>Guard</strong></span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-section="overview" id="nav-overview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Genel Bakış
+      </button>
+      <button class="nav-item" data-section="receipts" id="nav-receipts">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Fişler
+        <span class="badge" id="pendingBadge">0</span>
+      </button>
+      <button class="nav-item" data-section="highrisk" id="nav-highrisk">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Yüksek Risk
+        <span class="badge danger" id="riskBadge">0</span>
+      </button>
+      <button class="nav-item" data-section="budgets" id="nav-budgets">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Bütçeler
+      </button>
+      <button class="nav-item" data-section="upload" id="nav-upload">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Fiş Yükle
+      </button>
+      <button class="nav-item" data-section="analytics" id="nav-analytics">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Analitik
+      </button>
+      <button class="nav-item" data-section="billing" id="nav-billing" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        Abonelik
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="avatar" id="userAvatar">A</div>
+        <div>
+          <div class="user-name" id="userName">Yönetici</div>
+          <div class="user-role" id="userRole">Admin</div>
+        </div>
+      </div>
+      <button class="logout-btn" id="logoutBtn" title="Çıkış Yap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <button class="sidebar-toggle" id="sidebarToggle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <h1 class="page-title" id="pageTitle">Genel Bakış</h1>
+      <div class="topbar-actions">
+        <div class="api-status" id="apiStatus">
+          <span class="status-dot"></span>
+          <span id="apiStatusText">Kontrol ediliyor...</span>
+        </div>
+        <button class="refresh-btn" id="refreshBtn" title="Yenile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ── SECTION: Overview ─────────────────────────────── -->
+    <section id="section-overview" class="section active">
+
+      <!-- KPI Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-icon blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div>
+            <div class="kpi-label">Toplam Fiş</div>
+            <div class="kpi-value" id="kpiTotal">—</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div>
+            <div class="kpi-label">Onaylanan</div>
+            <div class="kpi-value" id="kpiApproved">—</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon red">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
+          </div>
+          <div>
+            <div class="kpi-label">Yüksek Riskli</div>
+            <div class="kpi-value" id="kpiHighRisk">—</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon purple">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div>
+            <div class="kpi-label">Bu Ay Harcama</div>
+            <div class="kpi-value" id="kpiMonthSpend">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="charts-row">
+        <div class="chart-card">
+          <h3>Fiş Durum Dağılımı</h3>
+          <div class="chart-wrap"><canvas id="statusChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Aylık Harcama Trendi</h3>
+          <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Recent High Risk -->
+      <div class="table-card">
+        <div class="table-header">
+          <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Son Yüksek Riskli Fişler</h3>
+          <button class="view-all-btn" onclick="switchSection('highrisk')">Tümünü Gör →</button>
+        </div>
+        <div id="recentHighRiskList" class="receipt-list">
+          <div class="loading-spinner"><div class="spinner"></div> Yükleniyor...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SECTION: Receipts ──────────────────────────────── -->
+    <section id="section-receipts" class="section">
+      <div class="section-actions">
+        <div class="filter-group">
+          <select id="statusFilter" class="filter-select">
+            <option value="">Tüm Durumlar</option>
+            <option value="Pending">Bekliyor</option>
+            <option value="AiProcessing">AI İşliyor</option>
+            <option value="Flagged">Bayraklı</option>
+            <option value="Approved">Onaylı</option>
+            <option value="Rejected">Reddedildi</option>
+          </select>
+          <input type="text" id="searchInput" class="search-input" placeholder="Satıcı veya tutar ara..." />
+          <button class="btn-secondary" id="exportCsvBtn" style="display:none;" title="Onaylı fişleri Excel olarak indir">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Excel İndir
+          </button>
+        </div>
+      </div>
+      <div id="receiptsList" class="receipt-list">
+        <div class="loading-spinner"><div class="spinner"></div> Yükleniyor...</div>
+      </div>
+    </section>
+
+    <!-- ── SECTION: High Risk ─────────────────────────────── -->
+    <section id="section-highrisk" class="section">
+      <div class="section-actions">
+        <div class="filter-group">
+          <label>Min. Risk Skoru:</label>
+          <input type="range" id="minScoreRange" min="30" max="90" value="60" class="range-input" />
+          <span id="minScoreDisplay" class="range-label">60</span>
+        </div>
+        <button class="btn-secondary" id="refreshRisk"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>Güncelle</button>
+      </div>
+      <div id="highRiskList" class="receipt-list">
+        <div class="loading-spinner"><div class="spinner"></div> Yükleniyor...</div>
+      </div>
+    </section>
+
+    <!-- ── SECTION: Budgets ───────────────────────────────── -->
+    <section id="section-budgets" class="section">
+      <div class="budget-form-card">
+        <h3>Bütçe Limiti Ayarla</h3>
+        <form id="budgetForm" class="budget-form">
+          <div class="form-row">
+            <div class="field-group">
+              <label>Departman ID</label>
+              <input type="text" id="budgetDeptId" placeholder="UUID..." required />
+            </div>
+            <div class="field-group">
+              <label>Yıl</label>
+              <input type="number" id="budgetYear" value="2025" min="2024" max="2030" required />
+            </div>
+            <div class="field-group">
+              <label>Ay</label>
+              <input type="number" id="budgetMonth" value="4" min="1" max="12" required />
+            </div>
+            <div class="field-group">
+              <label>Limit (TRY)</label>
+              <input type="number" id="budgetLimit" placeholder="50000" min="0" required />
+            </div>
+          </div>
+          <button type="submit" class="btn-primary">Kaydet</button>
+          <div id="budgetMsg" style="display:none" class="budget-msg"></div>
+        </form>
+      </div>
+
+      <div class="table-card">
+        <h3>Bütçe Durumu</h3>
+        <p class="hint">Departman bütçesini görüntülemek için Departman ID ve dönem girin.</p>
+        <div class="budget-query-form">
+          <input type="text" id="queryDeptId" placeholder="Departman UUID" class="search-input" />
+          <input type="number" id="queryYear" value="2025" class="filter-select" style="width:90px" />
+          <input type="number" id="queryMonth" value="4" class="filter-select" style="width:70px" />
+          <button class="btn-secondary" id="queryBudgetBtn">Sorgula</button>
+        </div>
+        <div id="budgetResult"></div>
+      </div>
+    </section>
+
+    <!-- ── SECTION: Analytics ─────────────────────────────── -->
+    <section id="section-analytics" class="section">
+      <div class="charts-row">
+        <div class="chart-card large">
+          <h3>Risk Skoru Dağılımı</h3>
+          <div class="chart-wrap"><canvas id="riskHistogram"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Kategori Dağılımı</h3>
+          <div class="chart-wrap"><canvas id="categoryChart"></canvas></div>
+        </div>
+      </div>
+      <div class="chart-card full-width">
+        <h3>Fraud Tespit Özeti</h3>
+        <div id="fraudSummary" class="fraud-summary-grid"></div>
+      </div>
+    </section>
+
+    <!-- ── SECTION: Billing ───────────────────────────────── -->
+    <section id="section-billing" class="section">
+      <div class="table-card" style="max-width: 600px; margin: 0 auto;">
+        <h3>Abonelik Yönetimi</h3>
+        <p class="hint">ExpenseGuard üyeliğinizi ve faturalarınızı buradan yönetin.</p>
+        <div style="margin-top: 20px; padding: 20px; background: rgba(245,158,11,0.05); border: 1px solid var(--border); border-radius: var(--r-md);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <span style="color: var(--text-muted)">Mevcut Plan</span>
+            <span style="font-weight: bold; color: var(--gold-light)">Premium / Trial</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <span style="color: var(--text-muted)">Durum</span>
+            <span style="background: rgba(52,211,153,0.1); color: var(--success); padding: 4px 10px; border-radius: 100px; font-size: 0.8rem; font-weight: bold;">Aktif</span>
+          </div>
+          <button class="btn-primary" style="width: 100%" onclick="alert('Stripe Müşteri Portalı entegrasyonu henüz frontend tarafında aktif değil. (API Hazır)')">Müşteri Portalına Git (Stripe)</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SECTION: Upload Receipt ────────────────────────── -->
+    <section id="section-upload" class="section">
+      <div class="upload-grid">
+
+        <!-- Photo Upload -->
+        <div class="upload-card">
+          <div class="upload-card-header">
+            <div class="upload-icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </div>
+            <div>
+              <h3>Fotoğrafla Fiş Yükle</h3>
+              <p>Fişin fotoğrafını çekin veya sürükleyip bırakın. AI otomatik olarak bilgileri çıkaracak.</p>
+            </div>
+          </div>
+
+          <div class="drop-zone" id="dropZone">
+            <div class="drop-zone-content" id="dropZoneContent">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <span class="drop-text">Fişi buraya sürükleyin veya tıklayın</span>
+              <span class="drop-hint">JPG, PNG, PDF — Maks. 10MB</span>
+            </div>
+            <input type="file" id="fileInput" accept="image/*,.pdf" style="display:none" />
+          </div>
+
+          <!-- Preview -->
+          <div class="upload-preview" id="uploadPreview" style="display:none">
+            <div class="preview-img-wrap">
+              <img id="previewImg" alt="Fiş önizleme" />
+              <button class="preview-remove" id="previewRemove" title="Kaldır">✕</button>
+            </div>
+            <div class="ocr-status" id="ocrStatus">
+              <div class="spinner"></div>
+              <span>AI fiş analiz ediyor...</span>
+            </div>
+          </div>
+
+          <!-- OCR Result -->
+          <div class="ocr-result" id="ocrResult" style="display:none">
+            <h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="vertical-align:middle;margin-right:6px"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/></svg>AI Tarama Sonucu</h4>
+            <div class="ocr-fields">
+              <div class="ocr-field"><label>Satıcı</label><input type="text" id="ocrVendor" value="" /></div>
+              <div class="ocr-field"><label>Tarih</label><input type="date" id="ocrDate" /></div>
+              <div class="ocr-field"><label>Tutar (₺)</label><input type="number" id="ocrAmount" step="0.01" /></div>
+              <div class="ocr-field"><label>KDV (₺)</label><input type="number" id="ocrTax" step="0.01" /></div>
+            </div>
+            <button class="btn-primary" id="submitOcrReceipt">Fişi Gönder</button>
+          </div>
+        </div>
+
+        <!-- Manual Entry -->
+        <div class="upload-card">
+          <div class="upload-card-header">
+            <div class="upload-icon-wrap icon-manual">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </div>
+            <div>
+              <h3>Manuel Fiş Girişi</h3>
+              <p>Fiş bilgilerini elle girin. Sistem otomatik fraud analizi yapacaktır.</p>
+            </div>
+          </div>
+
+          <form class="manual-form" id="manualReceiptForm">
+            <div class="form-row-2">
+              <div class="field-group">
+                <label for="manualVendor">Satıcı / İşyeri Adı</label>
+                <input type="text" id="manualVendor" placeholder="Örn: Migros, Shell, Hilton" required />
+              </div>
+              <div class="field-group">
+                <label for="manualCategory">Kategori</label>
+                <select id="manualCategory" required>
+                  <option value="">Seçiniz</option>
+                  <option value="food">Yemek</option>
+                  <option value="transport">Ulaşım</option>
+                  <option value="fuel">Yakıt</option>
+                  <option value="accommodation">Konaklama</option>
+                  <option value="office">Ofis Malzemesi</option>
+                  <option value="entertainment">Eğlence</option>
+                  <option value="other">Diğer</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row-3">
+              <div class="field-group">
+                <label for="manualAmount">Tutar (₺)</label>
+                <input type="number" id="manualAmount" step="0.01" min="0" placeholder="0.00" required />
+              </div>
+              <div class="field-group">
+                <label for="manualTax">KDV (₺)</label>
+                <input type="number" id="manualTax" step="0.01" min="0" placeholder="0.00" />
+              </div>
+              <div class="field-group">
+                <label for="manualDate">Fiş Tarihi</label>
+                <input type="date" id="manualDate" required />
+              </div>
+            </div>
+            <div class="field-group">
+              <label for="manualNote">Açıklama (Opsiyonel)</label>
+              <textarea id="manualNote" rows="3" placeholder="Harcamanın amacını kısaca açıklayın..."></textarea>
+            </div>
+            <button type="submit" class="btn-primary" id="submitManualReceipt">Fişi Gönder</button>
+          </form>
+
+          <!-- Submitted list -->
+          <div class="submitted-receipts" id="submittedReceipts" style="display:none">
+            <h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>Gönderilen Fişler</h4>
+            <div id="submittedList"></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ══ RECEIPT DETAIL MODAL ════════════════════════════════════ -->
+<div id="receiptModal" class="modal-overlay" style="display:none">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3>Fiş Detayı</h3>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div id="modalBody" class="modal-body"></div>
+    <div class="modal-actions" id="modalActions"></div>
+  </div>
+</div>
+
+<!-- ══ REJECT REASON MODAL (4.6) ═══════════════════════════════ -->
+<div id="rejectModal" class="modal-overlay" style="display:none; z-index: 9999;">
+  <div class="modal-card" style="max-width: 400px;">
+    <div class="modal-header">
+      <h3 style="color: var(--danger)">Red Gerekçesi</h3>
+      <button class="modal-close" onclick="document.getElementById('rejectModal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom: 12px; color: var(--text-secondary); font-size: 0.9rem;">Lütfen bu fişi reddetme nedeninizi belirtin. (Zorunlu)</p>
+      <textarea id="rejectReasonText" rows="3" style="width: 100%; background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-primary); padding: 12px; border-radius: 8px; resize: none;" placeholder="Örn: Mükerrer giriş, geçersiz tarih..."></textarea>
+    </div>
+    <div class="modal-actions" style="justify-content: flex-end; gap: 12px; padding-top: 16px;">
+      <button class="btn-secondary" onclick="document.getElementById('rejectModal').style.display='none'">İptal</button>
+      <button class="btn-primary" id="confirmRejectBtn" style="background: rgba(255,71,87,0.1); color: var(--danger); border-color: rgba(255,71,87,0.3);">Reddet</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Notification -->
+<div id="toast" class="toast" style="display:none"></div>
+
+<script src="js/dashboard.js"></script>
+</body>
+</html>

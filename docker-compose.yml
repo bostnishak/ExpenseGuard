@@ -1,0 +1,150 @@
+version: "3.9"
+
+# ══════════════════════════════════════════════════════════════
+#   ExpenseGuard Pro — Docker Compose
+#   Servisler: postgres, redis, rabbitmq, api (ASP.NET), ai (Python)
+# ══════════════════════════════════════════════════════════════
+
+services:
+
+  # ── 1. PostgreSQL 16 ───────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: expenseguard_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       expenseguard
+      POSTGRES_USER:     ${POSTGRES_USER:-eguser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-egpassword}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./database/02_triggers.sql:/docker-entrypoint-initdb.d/02_triggers.sql
+      - ./database/03_indexes_and_seed.sql:/docker-entrypoint-initdb.d/03_indexes_and_seed.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eguser -d expenseguard"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── 2. Redis 7 ─────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: expenseguard_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── 3. RabbitMQ 3 (Management UI dahil) ───────────────────
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: expenseguard_rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"     # AMQP
+      - "15672:15672"   # Management UI
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+
+  # ── 4. ASP.NET Core API ────────────────────────────────────
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: expenseguard_api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Postgres:  "Host=postgres;Port=5432;Database=expenseguard;Username=${POSTGRES_USER:-eguser};Password=${POSTGRES_PASSWORD:-egpassword}"
+      ConnectionStrings__Redis:     "redis:6379"
+      ConnectionStrings__RabbitMQ:  "amqp://guest:guest@rabbitmq:5672/"
+      Jwt__Secret:                  "${JWT_SECRET}"
+      Jwt__Issuer:                  "ExpenseGuard"
+      Jwt__Audience:                "ExpenseGuard"
+      Encryption__Key:              "${ENCRYPTION_KEY}"
+      InternalApiSecret:            "${INTERNAL_API_SECRET}"
+      Api__BaseUrl:                 "http://api:8080"
+      AllowedOrigins:               "http://localhost:3000,http://localhost:5500,http://127.0.0.1:5500"
+    expose:
+      - "8080"  # Sadece internal network'e açık (Nginx erişecek)
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ── 5. Python FastAPI AI Servisi ──────────────────────────
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: expenseguard_ai
+    restart: unless-stopped
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      RABBITMQ_URL:   "amqp://guest:guest@rabbitmq:5672/"
+      API_CALLBACK:   "http://api:8080"
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+      LOG_LEVEL:      "info"
+    expose:
+      - "8001"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8001/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ── 6. Nginx Reverse Proxy ─────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: expenseguard_nginx
+    restart: unless-stopped
+    depends_on:
+      - api
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"   # Dış dünyaya açık tek kapı (prod'da 443 eklenir)
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+# ── Volumes ────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:
+
+# ── Network ────────────────────────────────────────────────────
+networks:
+  default:
+    name: expenseguard_network

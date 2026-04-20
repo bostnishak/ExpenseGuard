@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sayfa Bulunamadı - 404 | ExpenseGuard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .error-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+      position: relative;
+    }
+    .error-content {
+      max-width: 500px;
+      z-index: 2;
+    }
+    .error-code {
+      font-size: 8rem;
+      font-weight: 900;
+      line-height: 1;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, var(--gold), var(--orange));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 10px 30px rgba(245,158,11,0.2);
+    }
+    .error-title {
+      font-size: 2rem;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+    }
+    .error-desc {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+    .orb-404 {
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(245,158,11,0.15) 0%, transparent 70%);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="error-page">
+    <div class="orb-404"></div>
+    <div class="error-content">
+      <div class="error-code">404</div>
+      <h1 class="error-title">Sayfa Bulunamadı</h1>
+      <p class="error-desc">Aradığınız sayfa silinmiş, adı değiştirilmiş veya geçici olarak ulaşılamıyor olabilir.</p>
+      <a href="index.html" class="btn-primary" style="display:inline-flex">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Ana Sayfaya Dön
+      </a>
+    </div>
+  </div>
+</body>
+</html>
