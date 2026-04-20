@@ -1,104 +1,116 @@
-# ExpenseGuard
+# 🛡️ ExpenseGuard
 
-ExpenseGuard is an enterprise-grade, B2B SaaS platform designed to automate corporate expense management and prevent financial fraud using Artificial Intelligence. 
+**Yapay Zeka Destekli Kurumsal Gider Yönetimi ve Fraud Tespit Platformu**
 
-The system leverages cloud-native architecture to provide multi-tenant isolation, asynchronous receipt processing via OCR, automated fraud detection, and role-based financial workflows. It is built to handle high-volume enterprise data with strict adherence to security and compliance standards.
+ExpenseGuard, orta ve büyük ölçekli B2B şirketler için tasarlanmış, çalışan masraflarını otomatikleştiren ve yapay zeka kullanarak finansal suistimalleri (fraud) tespit eden kurumsal düzeyde (enterprise-grade) bir SaaS platformudur.
 
-## Architecture & Technology Stack
+Bulut tabanlı (cloud-native) mimarisi sayesinde platform; çok kiracılı (multi-tenant) veri izolasyonu, OCR ile asenkron fiş işleme, otomatik fraud tespiti ve rol bazlı finansal iş akışları sunar. Yüksek hacimli kurumsal verileri güvenlik ve uyumluluk standartlarından ödün vermeden işlemek üzere inşa edilmiştir.
 
-The platform is designed with a service-oriented architecture (SOA), segregating the core API, AI processing engine, and caching layers to ensure horizontal scalability.
+---
+
+## 🌟 Temel Özellikler
+
+- **🤖 AI Destekli OCR & Fraud Tespiti:** Fiş veya fatura görüntülerinden Satıcı, Tarih, Tutar ve KDV bilgilerini otomatik çeker. Hafta sonu harcamaları, mükerrer girişler veya sektörel ortalama dışı şüpheli durumlar gibi anomalileri iş kurallarına göre analiz ederek olası fraud vakalarını işaretler.
+- **🏢 Multi-Tenant (Çok Kiracılı) Mimari:** EF Core Global Query Filters kullanılarak veri izolasyonu sağlanır. Tek bir sunucu kurulumu, birbirinden tamamen bağımsız birden fazla şirkete güvenle hizmet verebilir.
+- **🔐 Rol Bazlı Erişim Kontrolü (RBAC):** Sistem Yöneticileri, Departman Müdürleri, Çalışanlar ve Finansal Denetmenler için detaylı ve güvenli yetkilendirme altyapısı sunar.
+- **📊 Gerçek Zamanlı Bütçe Takibi:** Departman bütçeleri Redis üzerinde anlık olarak takip edilir. Aylık ayrılan bütçeyi aşan harcamalarda sistem otomatik uyarı verir veya harcamayı engeller.
+- **🛡️ İleri Düzey Güvenlik:** Rate Limiting (İstek Sınırlandırma), IDOR koruması, mikroservisler arası SSRF koruması (dahili network anahtarlarıyla) ve RCE saldırılarını önlemek için Magic Bytes dosya doğrulaması içerir.
+- **📑 Muhasebe Entegrasyonu:** Onaylanmış fiş ve harcamalar, SAP veya Oracle gibi kurumsal ERP sistemlerine aktarılmak üzere doğrudan CSV formatında dışa aktarılabilir.
+
+---
+
+## 🛠️ Mimari ve Teknoloji Yığını
+
+Platform, servis odaklı mimari (SOA) prensipleriyle tasarlanmış olup; Core API, AI işleme motoru ve önbellekleme (caching) katmanları yatayda ölçeklenebilecek şekilde ayrıştırılmıştır.
 
 ### Backend (.NET 9)
 - **Framework:** ASP.NET Core Web API
-- **ORM:** Entity Framework Core (Code-First)
-- **Database:** PostgreSQL (with 3NF normalization and pgcrypto for sensitive data encryption)
-- **Authentication:** JWT (JSON Web Tokens) with Refresh Token Rotation
-- **Architecture Pattern:** Onion Architecture / Clean Architecture (Domain, Application, Infrastructure, API)
-- **Dependency Injection:** Built-in Microsoft.Extensions.DependencyInjection
+- **ORM:** Entity Framework Core (Code-First yaklaşımı)
+- **Veritabanı:** PostgreSQL (3NF standardında normalize edilmiş ve hassas veriler için `pgcrypto` şifrelemesi kullanılmıştır)
+- **Kimlik Doğrulama:** Refresh Token mimarisine sahip JWT (JSON Web Tokens)
+- **Mimari Desen:** Onion Architecture / Clean Architecture (Domain, Application, Infrastructure, API)
+- **Dependency Injection:** Dahili `Microsoft.Extensions.DependencyInjection`
 
-### AI & Data Processing (Python)
+### Yapay Zeka ve Veri İşleme (Python)
 - **Framework:** FastAPI
-- **AI Integration:** OpenAI GPT-4 Vision API (for OCR and semantic fraud analysis)
-- **Message Broker:** RabbitMQ (for asynchronous background processing of receipts)
+- **AI Entegrasyonu:** OpenAI GPT-4 Vision API (OCR ve semantik fraud analizi için)
+- **Mesaj Kuyruğu (Message Broker):** RabbitMQ (Fişlerin arka planda asenkron olarak işlenmesi için)
 
-### Infrastructure & DevOps
-- **Containerization:** Docker & Docker Compose
-- **Caching:** Redis (Distributed caching for budgets and temporary tokens)
-- **Cloud Storage:** AWS S3 (Secure document and image storage)
-- **Billing:** Stripe Integration (Customer and subscription management)
+### Altyapı ve DevOps
+- **Konteynerizasyon:** Docker & Docker Compose
+- **Önbellekleme:** Redis (Bütçeler ve geçici tokenlar için dağıtık önbellek)
+- **Bulut Depolama:** AWS S3 (Fiş görselleri ve dokümanların güvenli depolanması)
+- **Ödeme Altyapısı:** Stripe Entegrasyonu (Müşteri ve abonelik yönetimi)
 - **Reverse Proxy:** Nginx
-- **Observability:** Serilog (Structured logging for Elasticsearch/Kibana integration)
+- **Gözlem (Observability):** Serilog (Elasticsearch/Kibana uyumlu yapılandırılmış loglama)
 
 ### Frontend
-- **Web App:** HTML5, Vanilla JavaScript, CSS3 (Custom Design System, Glassmorphism UI)
-- **Mobile App:** Flutter (Cross-platform field application for receipt capture)
+- **Web Paneli:** HTML5, CSS3, Vanilla JavaScript (Özel tasarım sistemi, Glassmorphism UI)
+- **Mobil Uygulama:** Flutter (Saha çalışanlarının fiş fotoğraflarını çekip yükleyebilmesi için cross-platform uygulama)
 
-## Core Features
+---
 
-- **AI-Powered OCR & Fraud Detection:** Extracts vendor, date, amount, and tax details from receipt images. Analyzes metadata against business rules (e.g., weekend spending, duplicate receipts, abnormal sector averages) to flag potential fraud.
-- **Multi-Tenant Architecture:** Strict data isolation using EF Core Global Query Filters. A single deployment serves multiple organizations securely.
-- **Role-Based Access Control (RBAC):** Granular permissions for System Admins, Department Managers, Employees, and Finance Auditors.
-- **Real-Time Budget Tracking:** Departmental budget limits tracked via Redis. Automatically warns or prevents spending that exceeds allocated monthly budgets.
-- **Security Hardening:** Implementation of Rate Limiting, IDOR prevention, SSRF protection via internal network secrets, and Magic Bytes file validation to prevent RCE attacks.
-- **Accounting Integration:** Export approved receipts directly to CSV format for seamless integration with ERP systems (SAP, Oracle, etc.).
+## 🚀 Başlangıç ve Kurulum
 
-## Getting Started
+Projeyi kendi lokal ortamınızda çalıştırmak için aşağıdaki adımları izleyin.
 
-### Prerequisites
-- Docker and Docker Compose
+### Ön Koşullar
+- Docker ve Docker Compose
 - .NET 9 SDK
 - Python 3.10+
-- AWS Account Credentials (S3)
-- Stripe Account Credentials
-- OpenAI API Key
+- AWS Hesap Kimlik Bilgileri (S3 için)
+- Stripe API Anahtarları
+- OpenAI API Anahtarı
 
-### Environment Configuration
-Create a `.env` file in the root directory and configure the necessary environment variables:
+### 1. Çevre Değişkenleri (Environment Variables)
+Proje kök dizininde bir `.env` dosyası oluşturun ve aşağıdaki değişkenleri kendi bilgilerinizle doldurun:
 
 ```env
-# Database
+# Veritabanı
 POSTGRES_DB=expenseguard
 POSTGRES_USER=admin
-POSTGRES_PASSWORD=your_secure_password
+POSTGRES_PASSWORD=cok_guvenli_sifreniz
 
-# Authentication & Security
-Jwt__Secret=YOUR_LONG_SECURE_JWT_SECRET
-InternalApiSecret=SECURE_RANDOM_STRING_FOR_MICROSERVICES
+# Güvenlik ve Kimlik Doğrulama
+Jwt__Secret=MINIMUM_32_KARAKTERLIK_GUVENLI_JWT_ANAHTARINIZ
+InternalApiSecret=MIKROSERVISLER_ARASI_ILETISIM_ICIN_GIZLI_ANAHTAR
 
-# AI Service
-OPENAI_API_KEY=sk-your-openai-api-key
+# AI Servisi
+OPENAI_API_KEY=sk-sizin-openai-anahtariniz
 
-# AWS S3
-AWS_ACCESS_KEY_ID=your_aws_key
-AWS_SECRET_ACCESS_KEY=your_aws_secret
+# AWS S3 (Bulut Depolama)
+AWS_ACCESS_KEY_ID=sizin_aws_keyiniz
+AWS_SECRET_ACCESS_KEY=sizin_aws_secretiniz
 AWS_REGION=eu-central-1
 S3_BUCKET_NAME=expenseguard-receipts
 
-# Stripe Billing
-Stripe__SecretKey=sk_test_your_stripe_key
+# Stripe (Abonelik)
+Stripe__SecretKey=sk_test_sizin_stripe_anahtariniz
 ```
 
-### Running with Docker Compose
-The easiest way to run the entire infrastructure locally is via Docker Compose:
+### 2. Docker Compose ile Başlatma
+Tüm altyapıyı tek bir komutla lokalinizde ayağa kaldırmak için:
 
 ```bash
 docker-compose up -d --build
 ```
+*Not: Bu komut PostgreSQL, Redis, RabbitMQ, .NET Core API ve Python AI servislerini başlatır. Veritabanı şeması `01_schema.sql` dosyası üzerinden otomatik olarak oluşturulacaktır.*
 
-This command will spin up PostgreSQL, Redis, RabbitMQ, the .NET Core API, and the Python AI Service. The database schema will be automatically initialized via the provided `01_schema.sql` script.
-
-### Accessing the Services
-- **Web Interface:** `http://localhost:3000` (or open `index.html` directly)
+### 3. Servislere Erişim
+- **Web Arayüzü:** `http://localhost:3000` (veya doğrudan `index.html` dosyasını açın)
 - **.NET API Swagger:** `http://localhost:8080/swagger`
-- **RabbitMQ Management:** `http://localhost:15672` (guest / guest)
+- **RabbitMQ Yönetim Paneli:** `http://localhost:15672` (Kullanıcı: `guest` / Şifre: `guest`)
 
-## Database Schema Highlights
+---
 
-The PostgreSQL database utilizes advanced features for enterprise security:
-- `pgcrypto` extension is used to symmetrically encrypt sensitive financial columns (`amount_encrypted`, `tax_amount_encrypted`) at rest.
-- Strict foreign key constraints and `ON DELETE CASCADE` rules ensure referential integrity across the multi-tenant hierarchy (`Tenants` -> `Departments` -> `Users` -> `Receipts`).
-- `UUID` generation is handled natively via `gen_random_uuid()` for distributed system compatibility.
+## 🗄️ Veritabanı Şeması Güvenliği
 
-## License
+PostgreSQL veritabanımız, kurumsal veri güvenliği için gelişmiş özellikler kullanır:
+- Veri tabanında atıl durumdaki (at rest) hassas finansal veriler (`amount_encrypted`, `tax_amount_encrypted`), **`pgcrypto`** eklentisi ile simetrik olarak şifrelenir.
+- Katı Foreign Key kuralları ve `ON DELETE CASCADE` mekanizması, çok kiracılı hiyerarşide (`Tenants` -> `Departments` -> `Users` -> `Receipts`) veri bütünlüğünü garanti eder.
+- Dağıtık sistem uyumluluğu için tüm ID'ler native `gen_random_uuid()` fonksiyonuyla **UUID** formatında üretilir.
 
-This project is proprietary and confidential. Unauthorized copying, distribution, or use of this source code is strictly prohibited.
+---
+
+## 📄 Lisans
+Bu proje ticari ve gizlidir. Bu kaynak kodun izinsiz kopyalanması, dağıtılması veya kullanılması kesinlikle yasaktır.
