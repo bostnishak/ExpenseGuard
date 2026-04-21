@@ -190,7 +190,7 @@ document.getElementById('sidebarToggle').addEventListener('click', () => {
     
     document.getElementById('userName').textContent = session.role || 'Kullanıcı';
     document.getElementById('userRole').textContent = session.email || '';
-    document.getElementById('userAvatar').textContent = (session.icon || session.role?.[0] || 'U');
+    document.getElementById('userAvatar').textContent = (session.role?.[0] || session.email?.[0] || 'U').toUpperCase();
 
     // Yetki Kontrolleri (UI Görünürlüğü)
     if (session.role === 'Sistem Admini') {

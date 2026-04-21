@@ -1,29 +1,56 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 import '../services/api_service.dart';
 import 'main_navigation_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final String initialTab;
+  const LoginScreen({super.key, this.initialTab = 'login'});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _domainController = TextEditingController(text: 'expenseguard.com');
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
-  // ── Demo Hesaplar ──
   static const _demoAccounts = [
-    {'email': 'admin@expenseguard.com', 'password': 'Test1234!', 'role': 'Sistem Admini', 'icon': '⚙️', 'color': 0xFFF59E0B},
-    {'email': 'yonetici@expenseguard.com', 'password': 'Test1234!', 'role': 'Departman Yöneticisi', 'icon': '👔', 'color': 0xFF3B82F6},
-    {'email': 'calisan@expenseguard.com', 'password': 'Test1234!', 'role': 'Çalışan', 'icon': '👤', 'color': 0xFF34D399},
-    {'email': 'finans@expenseguard.com', 'password': 'Test1234!', 'role': 'Finans Uzmanı', 'icon': '💼', 'color': 0xFFA78BFA},
+    {'email': 'admin@expenseguard.com', 'password': 'Test1234!', 'role': 'Sistem Admini', 'icon': Icons.shield_outlined, 'color': AppTheme.primaryGold},
+    {'email': 'yonetici@expenseguard.com', 'password': 'Test1234!', 'role': 'Departman Yöneticisi', 'icon': Icons.work_outline, 'color': Colors.blue},
+    {'email': 'calisan@expenseguard.com', 'password': 'Test1234!', 'role': 'Çalışan', 'icon': Icons.person_outline, 'color': AppTheme.statusApproved},
+    {'email': 'finans@expenseguard.com', 'password': 'Test1234!', 'role': 'Finans & Denetim', 'icon': Icons.monetization_on_outlined, 'color': Colors.purpleAccent},
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(
+      length: 2, 
+      vsync: this, 
+      initialIndex: widget.initialTab == 'register' ? 1 : 0
+    );
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _domainController.dispose();
+    super.dispose();
+  }
+
   Future<void> _login() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      _showError('Lütfen e-posta ve şifrenizi girin.');
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
       final response = await ApiService.login(
@@ -33,47 +60,49 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (response.isSuccess) {
-        if (!mounted) return;
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
-        );
+        _navigateToMain();
       } else {
         _showError(response.error ?? 'Giriş başarısız. Bilgilerinizi kontrol edin.');
       }
     } catch (e) {
-      // API offline — Demo mod ile giriş dene
+      // Offline fallback: Demo mode
       final email = _emailController.text.trim().toLowerCase();
       final pw = _passwordController.text;
-      final demo = _demoAccounts.cast<Map<String, dynamic>>().firstWhere(
-        (d) => d['email'] == email && d['password'] == pw,
-        orElse: () => {},
-      );
+      
+      Map<String, dynamic>? demo;
+      try {
+        demo = _demoAccounts.cast<Map<String, dynamic>>().firstWhere(
+          (d) => d['email'] == email && d['password'] == pw,
+        );
+      } catch (_) {}
 
-      if (demo.isNotEmpty) {
-        // Demo modda session kaydet
+      if (demo != null) {
         await ApiService.saveDemoSession(
           email: email,
           role: demo['role'] as String,
           domain: _domainController.text,
         );
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('✅ Demo modda giriş yapıldı (API offline)'),
-          backgroundColor: Color(0xFF34D399),
-        ));
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
-        );
+        _showSuccess('Demo modda giriş yapıldı (API offline)');
+        _navigateToMain();
       } else {
-        _showError('Sunucu bağlantı hatası. Demo hesap bilgileri de eşleşmiyor.');
+        _showError('Sunucu bağlantı hatası veya geçersiz demo hesabı.');
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  void _navigateToMain() {
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+      (_) => false,
+    );
+  }
+
   void _fillDemoAccount(Map<String, dynamic> account) {
     setState(() {
+      _tabController.animateTo(0); // Switch to login tab
       _emailController.text = account['email'] as String;
       _passwordController.text = account['password'] as String;
       _domainController.text = 'expenseguard.com';
@@ -81,146 +110,111 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: Colors.redAccent,
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppTheme.statusRejected));
+  }
+  
+  void _showSuccess(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppTheme.statusApproved));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0A06),
+      backgroundColor: AppTheme.bgDark,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text('Ana Sayfaya Dön', style: TextStyle(fontSize: 14, color: AppTheme.textPrimary)),
+        centerTitle: false,
+      ),
       body: Stack(
         children: [
-          // Background Gradient
-          Container(
-            decoration: const BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment(-0.5, -0.3),
-                radius: 1.5,
-                colors: [
-                  Color(0x1FF59E0B),
-                  Colors.transparent,
-                ],
-              ),
-            ),
-          ),
-          Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                children: [
-                  // ── LOGIN CARD ──
-                  Container(
-                    constraints: const BoxConstraints(maxWidth: 430),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1C1109),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0x2EF59E0B)),
-                      boxShadow: const [
-                        BoxShadow(color: Color(0x14F59E0B), blurRadius: 80, spreadRadius: 0),
-                        BoxShadow(color: Colors.black54, blurRadius: 28, offset: Offset(0, 4)),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Top accent line
-                        Container(
-                          height: 3,
-                          decoration: const BoxDecoration(
-                            borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
-                            gradient: LinearGradient(colors: [Color(0xFFF59E0B), Color(0xFFF97316), Color(0xFFFB7185)]),
+          // Background Glow
+          Container(decoration: const BoxDecoration(gradient: AppTheme.bgGlow)),
+          
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0),
+                child: Column(
+                  children: [
+                    // Main Glass Card
+                    Container(
+                      constraints: const BoxConstraints(maxWidth: 400),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceGlass,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppTheme.primaryGold.withOpacity(0.2)),
+                        boxShadow: AppTheme.glassShadow,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Custom TabBar
+                          Container(
+                            height: 60,
+                            decoration: BoxDecoration(
+                              border: Border(bottom: BorderSide(color: AppTheme.primaryGold.withOpacity(0.1))),
+                            ),
+                            child: TabBar(
+                              controller: _tabController,
+                              indicatorColor: AppTheme.primaryGold,
+                              indicatorWeight: 3,
+                              labelColor: AppTheme.primaryGold,
+                              unselectedLabelColor: AppTheme.textMuted,
+                              labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                              tabs: const [
+                                Tab(text: 'Giriş Yap'),
+                                Tab(text: 'Üye Ol'),
+                              ],
+                            ),
                           ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(32.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                          
+                          // TabBarView Content
+                          SizedBox(
+                            height: 380, // Fixed height for form area
+                            child: TabBarView(
+                              controller: _tabController,
+                              children: [
+                                _buildLoginForm(),
+                                _buildRegisterForm(),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 32),
+                    
+                    // Demo Accounts Section
+                    Container(
+                      constraints: const BoxConstraints(maxWidth: 400),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
                             children: [
-                              // Logo
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    width: 42, height: 42,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(11),
-                                      gradient: const LinearGradient(colors: [Color(0xFFF59E0B), Color(0xFFF97316)]),
-                                      boxShadow: const [BoxShadow(color: Color(0x33F59E0B), blurRadius: 18, offset: Offset(0, 4))],
-                                    ),
-                                    child: const Center(child: Text('EG', style: TextStyle(color: Color(0xFF0F0A06), fontWeight: FontWeight.w800, fontSize: 16))),
-                                  ),
-                                  const SizedBox(width: 14),
-                                  const Text('ExpenseGuard', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
-                                ],
-                              ),
-                              const SizedBox(height: 32),
-                              const Text('Hoş Geldiniz', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: -0.5), textAlign: TextAlign.center),
-                              const SizedBox(height: 8),
-                              const Text('Sisteme giriş yapmak için bilgilerinizi girin.', style: TextStyle(color: Color(0xFFC4A882), fontSize: 14), textAlign: TextAlign.center),
-                              const SizedBox(height: 32),
-
-                              _buildTextField('Şirket Domain', Icons.business, _domainController, false),
-                              const SizedBox(height: 16),
-                              _buildTextField('E-posta', Icons.email, _emailController, false, TextInputType.emailAddress),
-                              const SizedBox(height: 16),
-                              _buildTextField('Şifre', Icons.lock, _passwordController, true),
-                              const SizedBox(height: 32),
-
-                              // Login Button
-                              Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(11),
-                                  gradient: const LinearGradient(colors: [Color(0xFFF59E0B), Color(0xFFF97316)]),
-                                  boxShadow: const [BoxShadow(color: Color(0x33F59E0B), blurRadius: 22, offset: Offset(0, 4))],
-                                ),
-                                child: ElevatedButton(
-                                  onPressed: _isLoading ? null : _login,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.transparent, shadowColor: Colors.transparent,
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
-                                  ),
-                                  child: _isLoading
-                                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Color(0xFF0F0A06), strokeWidth: 2.5))
-                                      : const Text('Giriş Yap', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F0A06))),
-                                ),
-                              ),
+                              Icon(Icons.shield_outlined, color: AppTheme.primaryGold, size: 20),
+                              SizedBox(width: 8),
+                              Text('Demo Hesaplar — Test Modu', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
                             ],
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 6),
+                          const Text(
+                            'Kartlara dokunarak demo hesap bilgilerini otomatik doldurun.',
+                            style: TextStyle(fontSize: 12, color: AppTheme.textDarkMuted),
+                          ),
+                          const SizedBox(height: 14),
+                          ..._demoAccounts.map((account) => _buildDemoCard(account)),
+                        ],
+                      ),
                     ),
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // ── DEMO ACCOUNTS ──
-                  Container(
-                    constraints: const BoxConstraints(maxWidth: 430),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Row(
-                          children: [
-                            Icon(Icons.shield_outlined, color: Color(0xFFF59E0B), size: 20),
-                            SizedBox(width: 8),
-                            Text('Demo Hesaplar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFFFDF4E7))),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        const Text(
-                          'Kartlara dokunarak demo hesap bilgilerini otomatik doldurun.',
-                          style: TextStyle(fontSize: 12, color: Color(0xFF7A6347)),
-                        ),
-                        const SizedBox(height: 14),
-                        ..._demoAccounts.map((account) => _buildDemoCard(account)),
-                      ],
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -229,8 +223,103 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  Widget _buildLoginForm() {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildTextField('Şirket Domain', Icons.business, _domainController, false),
+          const SizedBox(height: 16),
+          _buildTextField('E-posta', Icons.email_outlined, _emailController, false, TextInputType.emailAddress),
+          const SizedBox(height: 16),
+          _buildTextField('Şifre', Icons.lock_outline, _passwordController, _obscurePassword, null, true),
+          
+          const Spacer(),
+          
+          // Submit Button
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(11),
+              gradient: AppTheme.primaryGradient,
+              boxShadow: AppTheme.buttonGlow,
+            ),
+            child: ElevatedButton(
+              onPressed: _isLoading ? null : _login,
+              child: _isLoading
+                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: AppTheme.bgDark, strokeWidth: 2.5))
+                  : const Text('Giriş Yap', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.bgDark)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRegisterForm() {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Icon(Icons.info_outline, color: AppTheme.primaryGold, size: 48),
+          const SizedBox(height: 16),
+          const Text(
+            'Demo Modu',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Yeni üyelik alımları sadece kurumsal satış temsilcilerimiz aracılığıyla yapılmaktadır. Lütfen info@expenseguard.com üzerinden iletişime geçin veya Demo Hesapları kullanın.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 14, color: AppTheme.textMuted, height: 1.5),
+          ),
+          const SizedBox(height: 24),
+          OutlinedButton(
+            onPressed: () => _tabController.animateTo(0),
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: AppTheme.primaryGold.withOpacity(0.5)),
+            ),
+            child: const Text('Giriş Ekranına Dön', style: TextStyle(color: AppTheme.primaryGold)),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextField(String label, IconData icon, TextEditingController controller, bool obscureText, [TextInputType? keyboardType, bool isPassword = false]) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textMuted, letterSpacing: 0.3)),
+        const SizedBox(height: 6),
+        TextField(
+          controller: controller,
+          obscureText: obscureText,
+          keyboardType: keyboardType,
+          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: AppTheme.primaryGold.withOpacity(0.05),
+            prefixIcon: Icon(icon, color: AppTheme.textMuted, size: 18),
+            suffixIcon: isPassword ? IconButton(
+              icon: Icon(obscureText ? Icons.visibility_off : Icons.visibility, color: AppTheme.textMuted, size: 18),
+              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+            ) : null,
+            contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppTheme.primaryGold.withOpacity(0.2))),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppTheme.primaryGold.withOpacity(0.2))),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.primaryGold)),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildDemoCard(Map<String, dynamic> account) {
-    final color = Color(account['color'] as int);
+    final color = account['color'] as Color;
     return GestureDetector(
       onTap: () => _fillDemoAccount(account),
       child: Container(
@@ -250,14 +339,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 borderRadius: BorderRadius.circular(11),
                 border: Border.all(color: color.withOpacity(0.25)),
               ),
-              child: Center(child: Text(account['icon'] as String, style: const TextStyle(fontSize: 20))),
+              child: Center(child: Icon(account['icon'] as IconData, color: color, size: 20)),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(account['role'] as String, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFFFDF4E7))),
+                  Text(account['role'] as String, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppTheme.textPrimary)),
                   const SizedBox(height: 2),
                   Text(account['email'] as String, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
                 ],
@@ -267,31 +356,6 @@ class _LoginScreenState extends State<LoginScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildTextField(String label, IconData icon, TextEditingController controller, bool obscureText, [TextInputType? keyboardType]) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFC4A882), letterSpacing: 0.3)),
-        const SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          obscureText: obscureText,
-          keyboardType: keyboardType,
-          style: const TextStyle(color: Color(0xFFFDF4E7), fontSize: 14),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: const Color(0x08F59E0B),
-            prefixIcon: Icon(icon, color: const Color(0xFFC4A882), size: 18),
-            contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0x2EF59E0B))),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0x2EF59E0B))),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFF59E0B))),
-          ),
-        ),
-      ],
     );
   }
 }

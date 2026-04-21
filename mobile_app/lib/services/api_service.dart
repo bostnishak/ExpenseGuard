@@ -223,20 +223,26 @@ class ApiService {
   // ── Auth Endpoints ──────────────────────────────────────────
 
   static Future<ApiResponse> login(String email, String password, String domain) async {
-    final response = await http.post(
-      Uri.parse('$_baseUrl/api/auth/login'),
-      headers: {'Content-Type': 'application/json', 'X-Tenant-Domain': domain},
-      body: jsonEncode({'email': email, 'password': password}),
-    );
-    final result = ApiResponse.fromHttp(response);
-    if (result.statusCode == 200 && result.data != null) {
-      await saveTokens(
-        token: result.data!['token'],
-        refreshToken: result.data!['refreshToken'],
-        tenantDomain: domain,
-      );
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/api/auth/login'),
+        headers: {'Content-Type': 'application/json', 'X-Tenant-Domain': domain},
+        body: jsonEncode({'email': email, 'password': password}),
+      ).timeout(const Duration(seconds: 3));
+      
+      final result = ApiResponse.fromHttp(response);
+      if (result.statusCode == 200 && result.data != null) {
+        await saveTokens(
+          token: result.data!['token'],
+          refreshToken: result.data!['refreshToken'],
+          tenantDomain: domain,
+        );
+      }
+      return result;
+    } catch (e) {
+      // API Offline veya timeout durumunda hata fırlat ki LoginScreen'deki catch (demo mode) çalışsın.
+      throw Exception('Sunucu bağlantısı kurulamadı: $e');
     }
-    return result;
   }
 
   static Future<void> logout() async {

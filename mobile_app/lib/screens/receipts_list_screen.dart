@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../theme/app_theme.dart';
 
-/// Fişlerin detaylı listesini gösteren ekran.
-/// Durum, fraud skoru ve kategori bazlı filtreleme + pull-to-refresh destekler.
 class ReceiptsListScreen extends StatefulWidget {
   const ReceiptsListScreen({super.key});
 
@@ -47,7 +46,7 @@ class _ReceiptsListScreenState extends State<ReceiptsListScreen> {
 
   void _showError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: Colors.redAccent),
+      SnackBar(content: Text(msg), backgroundColor: AppTheme.statusRejected),
     );
   }
 
@@ -60,11 +59,11 @@ class _ReceiptsListScreenState extends State<ReceiptsListScreen> {
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'approved':      return const Color(0xFF34D399);
-      case 'rejected':      return const Color(0xFFF87171);
-      case 'flagged':       return const Color(0xFFFCA5A5);
-      case 'aiprocessing':  return const Color(0xFFC084FC);
-      default:              return const Color(0xFFFBBF24);
+      case 'approved':      return AppTheme.statusApproved;
+      case 'rejected':      return AppTheme.statusRejected;
+      case 'flagged':       return AppTheme.statusFlagged;
+      case 'aiprocessing':  return AppTheme.statusAiProcessing;
+      default:              return AppTheme.statusPending;
     }
   }
 
@@ -107,10 +106,10 @@ class _ReceiptsListScreenState extends State<ReceiptsListScreen> {
     if (fraudScore == null) return const SizedBox.shrink();
     final score = (fraudScore as num).toInt();
     final color = score >= 70
-        ? Colors.red
+        ? AppTheme.statusRejected
         : score >= 40
-            ? Colors.orange
-            : Colors.green;
+            ? AppTheme.statusPending
+            : AppTheme.statusApproved;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
@@ -128,13 +127,12 @@ class _ReceiptsListScreenState extends State<ReceiptsListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0A06),
+      backgroundColor: AppTheme.bgDark,
       appBar: AppBar(
         title: const Text('Fişlerim', style: TextStyle(fontWeight: FontWeight.w800)),
-        backgroundColor: const Color(0xFF1C1109),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: AppTheme.textPrimary),
             onPressed: _fetchReceipts,
             tooltip: 'Yenile',
           ),
@@ -142,7 +140,7 @@ class _ReceiptsListScreenState extends State<ReceiptsListScreen> {
       ),
       body: Column(
         children: [
-          // ── Durum Filtresi (Türkçe) ──
+          // Durum Filtresi
           SizedBox(
             height: 48,
             child: ListView(
@@ -157,15 +155,15 @@ class _ReceiptsListScreenState extends State<ReceiptsListScreen> {
                     margin: const EdgeInsets.only(right: 8),
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                     decoration: BoxDecoration(
-                      color: isAct ? const Color(0xFFF59E0B) : const Color(0xFF1C1109),
+                      color: isAct ? AppTheme.primaryGold : AppTheme.surfaceGlass,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: isAct ? const Color(0xFFF59E0B) : const Color(0x2EF59E0B)),
+                      border: Border.all(color: isAct ? AppTheme.primaryGold : AppTheme.primaryGold.withOpacity(0.2)),
                     ),
                     child: Center(
                       child: Text(
                         entry.value,
                         style: TextStyle(
-                          color: isAct ? const Color(0xFF0F0A06) : const Color(0xFFC4A882),
+                          color: isAct ? AppTheme.bgDark : AppTheme.textMuted,
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
                         ),
@@ -177,91 +175,104 @@ class _ReceiptsListScreenState extends State<ReceiptsListScreen> {
             ),
           ),
 
-          // ── Liste ──
+          // Liste
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFFF59E0B)))
+                ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryGold))
                 : RefreshIndicator(
-                    color: const Color(0xFFF59E0B),
+                    color: AppTheme.primaryGold,
                     onRefresh: _fetchReceipts,
                     child: _filteredReceipts.isEmpty
                         ? const Center(
-                            child: Text('Kayıt bulunamadı.', style: TextStyle(color: Colors.white54)),
+                            child: Text('Kayıt bulunamadı.', style: TextStyle(color: AppTheme.textMuted)),
                           )
                         : ListView.builder(
-                            padding: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(16),
                             itemCount: _filteredReceipts.length,
                             itemBuilder: (ctx, i) {
                               final r      = _filteredReceipts[i];
                               final status = (r['status'] as String?) ?? 'pending';
                               final sc     = _getStatusColor(status);
-                              return Card(
-                                color: const Color(0xFF1C1109),
+                              final bool isHighRisk = (r['fraudScore'] != null && r['fraudScore'] >= 60);
+
+                              return Container(
                                 margin: const EdgeInsets.only(bottom: 10),
-                                shape: RoundedRectangleBorder(
+                                decoration: BoxDecoration(
+                                  color: AppTheme.surfaceGlass,
                                   borderRadius: BorderRadius.circular(14),
-                                  side: const BorderSide(color: Color(0x2EF59E0B), width: 1),
+                                  border: Border.all(color: AppTheme.primaryGold.withOpacity(0.2)),
+                                  boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 12, offset: Offset(0, 2))],
                                 ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(14),
-                                  child: Row(
-                                    children: [
-                                      // Kategori ikonu
-                                      Container(
-                                        width: 46, height: 46,
-                                        decoration: BoxDecoration(
-                                          color: sc.withOpacity(0.15),
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: Icon(_getCategoryIcon(r['category']), color: sc, size: 22),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      // Bilgiler
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              r['vendorName'] ?? 'Bilinmiyor',
-                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFFFDF4E7)),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(14),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      border: Border(left: BorderSide(color: isHighRisk ? AppTheme.statusRejected : Colors.transparent, width: 3)),
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(14),
+                                      child: Row(
+                                        children: [
+                                          // Kategori ikonu
+                                          Container(
+                                            width: 48, height: 48,
+                                            decoration: BoxDecoration(
+                                              color: sc.withOpacity(0.12),
+                                              borderRadius: BorderRadius.circular(12),
+                                              border: Border.all(color: sc.withOpacity(0.2)),
                                             ),
-                                            const SizedBox(height: 4),
-                                            Row(
+                                            child: Icon(_getCategoryIcon(r['category']), color: sc, size: 22),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          // Bilgiler
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
                                                 Text(
-                                                  '${r['receiptDate'] ?? ''} · ${_getCategoryText(r['category'])}',
-                                                  style: const TextStyle(color: Color(0xFF7A6347), fontSize: 12),
+                                                  r['vendorName'] ?? 'Bilinmiyor',
+                                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary),
                                                 ),
-                                                const SizedBox(width: 8),
-                                                _buildFraudBadge(r['fraudScore']),
+                                                const SizedBox(height: 4),
+                                                Row(
+                                                  children: [
+                                                    Text(
+                                                      '${r['receiptDate'] ?? ''} · ${_getCategoryText(r['category'])}',
+                                                      style: const TextStyle(color: AppTheme.textDarkMuted, fontSize: 12),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    _buildFraudBadge(r['fraudScore']),
+                                                  ],
+                                                ),
                                               ],
                                             ),
-                                          ],
-                                        ),
-                                      ),
-                                      // Tutar ve durum
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
-                                        children: [
-                                          Text(
-                                            '₺${r['amount'] ?? '—'}',
-                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFFEDE8DF)),
                                           ),
-                                          const SizedBox(height: 4),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: sc.withOpacity(0.15),
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: Text(
-                                              _getStatusText(status),
-                                              style: TextStyle(color: sc, fontSize: 10, fontWeight: FontWeight.bold),
-                                            ),
+                                          // Tutar ve durum
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.end,
+                                            children: [
+                                              Text(
+                                                '₺${r['amount'] ?? '—'}',
+                                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.textPrimary),
+                                              ),
+                                              const SizedBox(height: 6),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: sc.withOpacity(0.12),
+                                                  borderRadius: BorderRadius.circular(6),
+                                                  border: Border.all(color: sc.withOpacity(0.2)),
+                                                ),
+                                                child: Text(
+                                                  _getStatusText(status),
+                                                  style: TextStyle(color: sc, fontSize: 10, fontWeight: FontWeight.bold),
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ],
                                       ),
-                                    ],
+                                    ),
                                   ),
                                 ),
                               );

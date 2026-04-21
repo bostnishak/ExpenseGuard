@@ -14,8 +14,22 @@ Bulut tabanlı (cloud-native) mimarisi sayesinde platform; çok kiracılı (mult
 - **🏢 Multi-Tenant (Çok Kiracılı) Mimari:** EF Core Global Query Filters kullanılarak veri izolasyonu sağlanır. Tek bir sunucu kurulumu, birbirinden tamamen bağımsız birden fazla şirkete güvenle hizmet verebilir.
 - **🔐 Rol Bazlı Erişim Kontrolü (RBAC):** Sistem Yöneticileri, Departman Müdürleri, Çalışanlar ve Finansal Denetmenler için detaylı ve güvenli yetkilendirme altyapısı sunar.
 - **📊 Gerçek Zamanlı Bütçe Takibi:** Departman bütçeleri Redis üzerinde anlık olarak takip edilir. Aylık ayrılan bütçeyi aşan harcamalarda sistem otomatik uyarı verir veya harcamayı engeller.
-- **🛡️ İleri Düzey Güvenlik:** Rate Limiting (İstek Sınırlandırma), IDOR koruması, mikroservisler arası SSRF koruması (dahili network anahtarlarıyla) ve RCE saldırılarını önlemek için Magic Bytes dosya doğrulaması içerir.
-- **📑 Muhasebe Entegrasyonu:** Onaylanmış fiş ve harcamalar, SAP veya Oracle gibi kurumsal ERP sistemlerine aktarılmak üzere doğrudan CSV formatında dışa aktarılabilir.
+- **🛡️ İleri Düzey Güvenlik & Uyum:** KVKK/GDPR uyumluluğu (çerez yönetimi dahil), Rate Limiting, IDOR koruması ve SSRF/RCE saldırılarını önlemek için katı mimari kontroller.
+- **🔄 Hibrit Çalışma Modu (Demo/API):** Frontend, backend API'sine erişilemediğinde otomatik olarak "Demo Mod"a geçerek, uygulamanın yeteneklerini (AI analiz simulasyonu, rol değişimleri) sergilemeye devam eder.
+- **📑 Muhasebe Entegrasyonu:** Onaylanmış fiş ve harcamalar, ERP sistemlerine aktarılmak üzere doğrudan CSV formatında dışa aktarılabilir.
+- **📈 Kurumsal SEO ve Analitik:** GA4 entegrasyonu ve JSON-LD yapılandırılmış veri standartları ile tam kurumsal görünürlük.
+
+---
+
+## 📁 Proje Dizin Yapısı
+
+Platform frontend ve backend/mobil bileşenlerini modüler bir düzende tutar:
+- `/pages/` - Ana uygulama ekranları (Login, Dashboard, 404 vb.)
+- `/legal/` - Kurumsal sözleşme ve aydınlatma metinleri (KVKK, Gizlilik, Şartlar)
+- `/css/` & `/js/` - Saf CSS/JS ile yüksek performanslı, Glassmorphism tasarım sistemi
+- `/assets/` - Optimizasyonlu (.webp) görseller ve ikon setleri
+- `/mobile_app/` - Flutter tabanlı mobil saha uygulaması (Kamera & OCR entegrasyonu)
+- `/api/` & `/ai_service/` - .NET 9 Backend ve Python AI servisleri (Docker Compose ile yönetilir)
 
 ---
 
@@ -45,12 +59,12 @@ Platform, servis odaklı mimari (SOA) prensipleriyle tasarlanmış olup; Core AP
 - **Gözlem (Observability):** Serilog (Elasticsearch/Kibana uyumlu yapılandırılmış loglama)
 
 ### Frontend
-- **Web Paneli:** HTML5, CSS3, Vanilla JavaScript (Özel tasarım sistemi, Glassmorphism UI)
+- **Web Paneli:** HTML5, CSS3, Vanilla JavaScript (Özel tasarım sistemi, Modüler Klasör Yapısı, Glassmorphism UI). Framework bağımlılığı olmadan ultra hızlı yükleme.
 - **Mobil Uygulama:** Flutter (Saha çalışanlarının fiş fotoğraflarını çekip yükleyebilmesi için cross-platform uygulama)
 
 ---
 
-## 🚀 Başlangıç ve Kurulum
+## Başlangıç ve Kurulum
 
 Projeyi kendi lokal ortamınızda çalıştırmak için aşağıdaki adımları izleyin.
 

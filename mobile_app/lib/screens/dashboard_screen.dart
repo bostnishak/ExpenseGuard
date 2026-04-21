@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../theme/app_theme.dart';
 import 'login_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -48,11 +49,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'approved': return const Color(0xFF34D399);
-      case 'rejected': return const Color(0xFFF87171);
-      case 'flagged': return const Color(0xFFFCA5A5);
-      case 'aiprocessing': return const Color(0xFFC084FC);
-      default: return const Color(0xFFFBBF24);
+      case 'approved': return AppTheme.statusApproved;
+      case 'rejected': return AppTheme.statusRejected;
+      case 'flagged': return AppTheme.statusFlagged;
+      case 'aiprocessing': return AppTheme.statusAiProcessing;
+      default: return AppTheme.statusPending;
     }
   }
 
@@ -93,7 +94,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // KPI hesaplamaları
     final totalAmount = _receipts.fold<double>(0, (sum, r) => sum + ((r['amount'] as num?)?.toDouble() ?? 0));
     final approvedCount = _receipts.where((r) => (r['status'] as String?)?.toLowerCase() == 'approved').length;
     final flaggedCount = _receipts.where((r) => (r['status'] as String?)?.toLowerCase() == 'flagged').length;
@@ -103,55 +103,52 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }).length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0A06),
+      backgroundColor: AppTheme.bgDark,
       appBar: AppBar(
         title: const Text('Özet', style: TextStyle(fontWeight: FontWeight.w800)),
-        backgroundColor: const Color(0xFF1C1109),
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchReceipts, tooltip: 'Yenile'),
+          IconButton(icon: const Icon(Icons.refresh, color: AppTheme.textPrimary), onPressed: _fetchReceipts, tooltip: 'Yenile'),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFF59E0B)))
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryGold))
           : RefreshIndicator(
-              color: const Color(0xFFF59E0B),
+              color: AppTheme.primaryGold,
               onRefresh: _fetchReceipts,
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  // ── KPI Kartları ──
+                  // KPI Kartları
                   Row(
                     children: [
-                      Expanded(child: _buildKpiCard('Toplam', '₺${totalAmount.toStringAsFixed(0)}', Icons.account_balance_wallet, const Color(0xFF60A5FA))),
+                      Expanded(child: _buildKpiCard('Toplam', '₺${totalAmount.toStringAsFixed(0)}', Icons.account_balance_wallet, Colors.blueAccent)),
                       const SizedBox(width: 10),
-                      Expanded(child: _buildKpiCard('Onaylı', '$approvedCount', Icons.check_circle_outline, const Color(0xFF34D399))),
+                      Expanded(child: _buildKpiCard('Onaylı', '$approvedCount', Icons.check_circle_outline, AppTheme.statusApproved)),
                     ],
                   ),
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      Expanded(child: _buildKpiCard('Riskli', '$flaggedCount', Icons.warning_amber_rounded, const Color(0xFFF87171))),
+                      Expanded(child: _buildKpiCard('Riskli', '$flaggedCount', Icons.warning_amber_rounded, AppTheme.statusRejected)),
                       const SizedBox(width: 10),
-                      Expanded(child: _buildKpiCard('Bekleyen', '$pendingCount', Icons.hourglass_empty, const Color(0xFFC084FC))),
+                      Expanded(child: _buildKpiCard('Bekleyen', '$pendingCount', Icons.hourglass_empty, AppTheme.statusAiProcessing)),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
 
-                  // ── Son Fişler Başlık ──
                   const Row(
                     children: [
-                      Icon(Icons.receipt_long, color: Color(0xFFF59E0B), size: 18),
+                      Icon(Icons.receipt_long, color: AppTheme.primaryGold, size: 18),
                       SizedBox(width: 8),
-                      Text('Son Fişler', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFFFDF4E7))),
+                      Text('Son Fişler', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
                     ],
                   ),
                   const SizedBox(height: 12),
 
-                  // ── Fiş Listesi ──
                   if (_receipts.isEmpty)
                     const Center(child: Padding(
                       padding: EdgeInsets.all(32),
-                      child: Text('📭 Henüz fiş bulunmuyor.', style: TextStyle(color: Color(0xFFC4A882))),
+                      child: Text('📭 Henüz fiş bulunmuyor.', style: TextStyle(color: AppTheme.textMuted)),
                     ))
                   else
                     ...List.generate(_receipts.length, (index) {
@@ -163,16 +160,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       return Container(
                         margin: const EdgeInsets.only(bottom: 10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1C1109),
+                          color: AppTheme.surfaceGlass,
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0x2EF59E0B)),
+                          border: Border.all(color: AppTheme.primaryGold.withOpacity(0.2)),
                           boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 12, offset: Offset(0, 2))],
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(14),
                           child: Container(
                             decoration: BoxDecoration(
-                              border: Border(left: BorderSide(color: isHighRisk ? const Color(0xFFF87171) : Colors.transparent, width: 3)),
+                              border: Border(left: BorderSide(color: isHighRisk ? AppTheme.statusRejected : Colors.transparent, width: 3)),
                             ),
                             child: ListTile(
                               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -185,19 +182,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                                 child: Icon(_getCategoryIcon(r['category']), color: statusColor, size: 22),
                               ),
-                              title: Text(r['vendorName'] ?? 'Bilinmiyor', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFFFDF4E7))),
+                              title: Text(r['vendorName'] ?? 'Bilinmiyor', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary)),
                               subtitle: Padding(
                                 padding: const EdgeInsets.only(top: 4.0),
                                 child: Text(
                                   '${r['receiptDate']} · ${_getCategoryText(r['category'])}',
-                                  style: const TextStyle(color: Color(0xFF7A6347), fontSize: 12),
+                                  style: const TextStyle(color: AppTheme.textDarkMuted, fontSize: 12),
                                 ),
                               ),
                               trailing: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
-                                  Text('₺${r['amount'] ?? '—'}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFFEDE8DF))),
+                                  Text('₺${r['amount'] ?? '—'}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.textPrimary)),
                                   const SizedBox(height: 6),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -225,9 +222,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1109),
+        color: AppTheme.surfaceGlass,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0x2EF59E0B)),
+        border: Border.all(color: AppTheme.primaryGold.withOpacity(0.2)),
       ),
       child: Row(
         children: [
@@ -244,9 +241,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(color: Color(0xFFC4A882), fontSize: 11, fontWeight: FontWeight.w600)),
+                Text(label, style: const TextStyle(color: AppTheme.textMuted, fontSize: 11, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 2),
-                Text(value, style: const TextStyle(color: Color(0xFFFDF4E7), fontSize: 17, fontWeight: FontWeight.w800)),
+                Text(value, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 17, fontWeight: FontWeight.w800)),
               ],
             ),
           ),

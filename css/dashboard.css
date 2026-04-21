@@ -269,8 +269,8 @@ body::before {
   flex-shrink: 0;
   box-shadow: 0 3px 14px var(--glow-gold);
 }
-.user-name { font-size: .85rem; font-weight: 700; }
-.user-role { font-size: .73rem; color: var(--text3); }
+.user-name { font-size: .85rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
+.user-role { font-size: .75rem; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; margin-top: 1px; }
 .logout-btn {
   margin-left: auto; background: transparent; border: none;
   color: var(--text3); cursor: pointer; padding: .45rem;

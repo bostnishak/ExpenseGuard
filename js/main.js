@@ -303,104 +303,43 @@ function openCheckoutModal(planName, planPrice) {
         background:linear-gradient(90deg,#f59e0b,#f97316,#fb7185)"></div>
       <div style="padding:1.5rem 1.5rem .8rem;border-bottom:1px solid rgba(255,175,50,.09);
         display:flex;align-items:center;justify-content:space-between">
-        <strong style="font-size:1rem">Plan Sat\u0131n Al</strong>
+        <strong style="font-size:1rem">Plan Başvurusu</strong>
         <button id="__checkoutClose" style="background:rgba(255,175,50,.07);border:1px solid rgba(255,175,50,.15);
           color:#c4a882;border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:1.2rem;
-          display:flex;align-items:center;justify-content:center">\u00d7</button>
+          display:flex;align-items:center;justify-content:center">&times;</button>
       </div>
       <div style="padding:1.5rem">
         <div style="background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.15);
           border-radius:12px;padding:1.2rem;margin-bottom:1.2rem;text-align:center">
-          <div style="font-size:.8rem;color:#c4a882;margin-bottom:.3rem">Se\u00e7ilen Plan</div>
+          <div style="font-size:.8rem;color:#c4a882;margin-bottom:.3rem">Seçilen Plan</div>
           <div style="font-size:1.4rem;font-weight:800;color:#f5f0e8">${planName}</div>
           <div style="font-size:1.1rem;font-weight:700;color:#f59e0b;margin-top:.3rem">${planPrice}</div>
         </div>
-        <form id="__checkoutForm" style="display:flex;flex-direction:column;gap:.9rem">
+        <div style="background:rgba(99,102,241,0.07);border:1px solid rgba(99,102,241,0.2);
+          border-radius:12px;padding:1rem 1.2rem;margin-bottom:1.2rem;display:flex;gap:.75rem;align-items:flex-start">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           <div>
-            <label style="font-size:.8rem;color:#c4a882;display:block;margin-bottom:.35rem">Kart Numaras\u0131</label>
-            <input type="text" maxlength="19" placeholder="0000 0000 0000 0000" required
-              style="width:100%;padding:.7rem .9rem;background:rgba(15,10,6,.6);border:1px solid rgba(245,158,11,.15);
-              border-radius:10px;color:#f5f0e8;font-size:.9rem;font-family:monospace;outline:none"
-              oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/(\\d{4})(?=\\d)/g,'$1 ')" />
+            <p style="color:#c7d2fe;font-size:.85rem;font-weight:600;margin-bottom:.25rem">Bu bir Demo Platformudur</p>
+            <p style="color:#8b9cc8;font-size:.8rem;line-height:1.5">Online ödeme bu demo versiyonda henüz aktif değil. Abonelik başlatmak veya teklif almak için satış ekibimize ulaşın — 24 saat içinde dönüş sağlarız.</p>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.9rem">
-            <div>
-              <label style="font-size:.8rem;color:#c4a882;display:block;margin-bottom:.35rem">Son Kullanma</label>
-              <input type="text" maxlength="5" placeholder="AA/YY" required
-                style="width:100%;padding:.7rem .9rem;background:rgba(15,10,6,.6);border:1px solid rgba(245,158,11,.15);
-                border-radius:10px;color:#f5f0e8;font-size:.9rem;outline:none"
-                oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/(\\d{2})(?=\\d)/g,'$1/')" />
-            </div>
-            <div>
-              <label style="font-size:.8rem;color:#c4a882;display:block;margin-bottom:.35rem">CVV</label>
-              <input type="password" maxlength="4" placeholder="\u2022\u2022\u2022" required
-                style="width:100%;padding:.7rem .9rem;background:rgba(15,10,6,.6);border:1px solid rgba(245,158,11,.15);
-                border-radius:10px;color:#f5f0e8;font-size:.9rem;outline:none" />
-            </div>
-          </div>
-          <div>
-            <label style="font-size:.8rem;color:#c4a882;display:block;margin-bottom:.35rem">Kart \u00dczerindeki \u0130sim</label>
-            <input type="text" placeholder="Ad Soyad" required
-              style="width:100%;padding:.7rem .9rem;background:rgba(15,10,6,.6);border:1px solid rgba(245,158,11,.15);
-              border-radius:10px;color:#f5f0e8;font-size:.9rem;outline:none" />
-          </div>
-          <button type="submit" style="width:100%;padding:.85rem;background:linear-gradient(135deg,#f59e0b,#f97316);
-            color:#0f0a06;border:none;border-radius:12px;font-size:.95rem;font-weight:800;cursor:pointer;
-            margin-top:.4rem;transition:all .3s">
-            \u00d6demeyi Tamamla
-          </button>
-          <div style="display:flex;align-items:center;justify-content:center;gap:.6rem;
-            font-size:.75rem;color:#8b7355;margin-top:.2rem">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-            <span>256-bit SSL ile korunan g\u00fcvenli \u00f6deme</span>
-          </div>
-        </form>
+        </div>
+        <a href="index.html#contact" onclick="document.getElementById('__checkoutModal').remove()"
+          style="display:flex;align-items:center;justify-content:center;gap:.5rem;
+          width:100%;padding:.85rem;background:linear-gradient(135deg,#f59e0b,#f97316);
+          color:#0f0a06;border:none;border-radius:12px;font-size:.95rem;font-weight:800;
+          cursor:pointer;text-decoration:none;margin-bottom:.75rem">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          Satış Ekibiyle İletişime Geç
+        </a>
+        <p style="text-align:center;font-size:.75rem;color:#8b7355">
+          info@expenseguard.com &nbsp;&middot;&nbsp; +90 (850) 123 45 67
+        </p>
       </div>
     </div>`;
   document.body.appendChild(overlay);
   document.getElementById('__checkoutClose').onclick = () => overlay.remove();
   overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
   document.addEventListener('keydown', e => { if (e.key === 'Escape') overlay.remove(); }, { once: true });
-  document.getElementById('__checkoutForm').onsubmit = e => {
-    e.preventDefault();
-    const submitBtn = e.target.querySelector('button[type=submit]');
-    submitBtn.textContent = '\u0130\u015fleniyor...';
-    submitBtn.disabled = true;
-    setTimeout(() => {
-      // Planı session'a kaydet
-      try {
-        const sess = JSON.parse(localStorage.getItem('eg_session') || '{}');
-        sess.plan = planName;
-        sess.planDate = new Date().toISOString();
-        localStorage.setItem('eg_session', JSON.stringify(sess));
-        var userEmail = sess.email || '';
-      } catch { var userEmail = ''; }
-
-      overlay.querySelector('div > div').innerHTML = `
-        <div style="padding:3rem 1.5rem;text-align:center">
-          <div style="width:64px;height:64px;border-radius:50%;background:rgba(52,211,153,.12);
-            display:flex;align-items:center;justify-content:center;margin:0 auto 1.2rem">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
-          </div>
-          <h2 style="font-size:1.3rem;margin-bottom:.5rem;color:#f5f0e8">\u00d6deme Ba\u015far\u0131l\u0131!</h2>
-          <p style="color:#c4a882;font-size:.88rem;margin-bottom:.4rem">
-            <strong>${planName}</strong> plan\u0131n\u0131z aktif edildi.
-          </p>
-          ${userEmail ? '<p style="color:#8b7355;font-size:.78rem;margin-bottom:1.2rem">Hesap: <strong style="color:#c4a882">' + userEmail + '</strong></p>' : ''}
-          <div style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);
-            border-radius:10px;padding:.7rem 1rem;margin-bottom:1.5rem;display:inline-flex;align-items:center;gap:.5rem">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/></svg>
-            <span style="color:#f59e0b;font-weight:700;font-size:.85rem">Abonelik Aktif ✓</span>
-          </div>
-          <br/>
-          <button onclick="document.getElementById('__checkoutModal').remove();window.location.href='dashboard.html'"
-            style="padding:.75rem 2rem;background:linear-gradient(135deg,#f59e0b,#f97316);
-            color:#0f0a06;border:none;border-radius:12px;font-weight:800;cursor:pointer;font-size:.9rem">
-            Dashboard'a Git
-          </button>
-        </div>`;
-    }, 2000);
-  };
 }
 
 /* ── COOKIE CONSENT BANNER (3.1 & 3.7) ───────────────── */
@@ -431,10 +370,13 @@ const footerMap = {
   'Mimari':      'architecture',
   'AI Motor':    'ai-engine',
   'Fiyatlar':    'pricing',
+  'Veri Güvenliği': 'security',
+  'Yetki Yönetimi': 'security',
+  'Değişiklik Geçmişi': 'security',
+  'KVKK Uyumu':  'security',
   'CIA Triadı':  'security',
   'RBAC Rolleri':'security',
   'Audit Trail': 'security',
-  'KVKK Uyumu':  'security',
   'ASP.NET Core':'architecture',
   'Python FastAPI':'architecture',
   'Flutter':       'architecture',
