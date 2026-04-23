@@ -10,14 +10,14 @@ Bulut tabanlı (cloud-native) mimarisi sayesinde platform; çok kiracılı (mult
 
 ## 🌟 Temel Özellikler
 
-- **🤖 AI Destekli OCR & Fraud Tespiti:** Fiş veya fatura görüntülerinden Satıcı, Tarih, Tutar ve KDV bilgilerini otomatik çeker. Hafta sonu harcamaları, mükerrer girişler veya sektörel ortalama dışı şüpheli durumlar gibi anomalileri iş kurallarına göre analiz ederek olası fraud vakalarını işaretler.
-- **🏢 Multi-Tenant (Çok Kiracılı) Mimari:** EF Core Global Query Filters kullanılarak veri izolasyonu sağlanır. Tek bir sunucu kurulumu, birbirinden tamamen bağımsız birden fazla şirkete güvenle hizmet verebilir.
-- **🔐 Rol Bazlı Erişim Kontrolü (RBAC):** Sistem Yöneticileri, Departman Müdürleri, Çalışanlar ve Finansal Denetmenler için detaylı ve güvenli yetkilendirme altyapısı sunar.
-- **📊 Gerçek Zamanlı Bütçe Takibi:** Departman bütçeleri Redis üzerinde anlık olarak takip edilir. Aylık ayrılan bütçeyi aşan harcamalarda sistem otomatik uyarı verir veya harcamayı engeller.
-- **🛡️ İleri Düzey Güvenlik & Uyum:** KVKK/GDPR uyumluluğu (çerez yönetimi dahil), Rate Limiting, IDOR koruması ve SSRF/RCE saldırılarını önlemek için katı mimari kontroller.
-- **🔄 Hibrit Çalışma Modu (Demo/API):** Frontend, backend API'sine erişilemediğinde otomatik olarak "Demo Mod"a geçerek, uygulamanın yeteneklerini (AI analiz simulasyonu, rol değişimleri) sergilemeye devam eder.
-- **📑 Muhasebe Entegrasyonu:** Onaylanmış fiş ve harcamalar, ERP sistemlerine aktarılmak üzere doğrudan CSV formatında dışa aktarılabilir.
-- **📈 Kurumsal SEO ve Analitik:** GA4 entegrasyonu ve JSON-LD yapılandırılmış veri standartları ile tam kurumsal görünürlük.
+- **AI Destekli OCR & Fraud Tespiti:** Fiş veya fatura görüntülerinden Satıcı, Tarih, Tutar ve KDV bilgilerini otomatik çeker. Hafta sonu harcamaları, mükerrer girişler veya sektörel ortalama dışı şüpheli durumlar gibi anomalileri iş kurallarına göre analiz ederek olası fraud vakalarını işaretler.
+- **Multi-Tenant (Çok Kiracılı) Mimari:** EF Core Global Query Filters kullanılarak veri izolasyonu sağlanır. Tek bir sunucu kurulumu, birbirinden tamamen bağımsız birden fazla şirkete güvenle hizmet verebilir.
+- **Rol Bazlı Erişim Kontrolü (RBAC):** Sistem Yöneticileri, Departman Müdürleri, Çalışanlar ve Finansal Denetmenler için detaylı ve güvenli yetkilendirme altyapısı sunar.
+- **Gerçek Zamanlı Bütçe Takibi:** Departman bütçeleri Redis üzerinde anlık olarak takip edilir. Aylık ayrılan bütçeyi aşan harcamalarda sistem otomatik uyarı verir veya harcamayı engeller.
+- **İleri Düzey Güvenlik & Uyum:** KVKK/GDPR uyumluluğu (çerez yönetimi dahil), Rate Limiting, IDOR koruması ve SSRF/RCE saldırılarını önlemek için katı mimari kontroller.
+- **Hibrit Çalışma Modu (Demo/API):** Frontend, backend API'sine erişilemediğinde otomatik olarak "Demo Mod"a geçerek, uygulamanın yeteneklerini (AI analiz simulasyonu, rol değişimleri) sergilemeye devam eder.
+- **Muhasebe Entegrasyonu:** Onaylanmış fiş ve harcamalar, ERP sistemlerine aktarılmak üzere doğrudan CSV formatında dışa aktarılabilir.
+- **Kurumsal SEO ve Analitik:** GA4 entegrasyonu ve JSON-LD yapılandırılmış veri standartları ile tam kurumsal görünürlük.
 
 ---
 
@@ -58,7 +58,7 @@ Platform frontend ve backend/mobil bileşenlerini modüler bir düzende tutar:
 
 Platform, servis odaklı mimari (SOA) prensipleriyle tasarlanmış olup; Core API, AI işleme motoru ve önbellekleme (caching) katmanları yatayda ölçeklenebilecek şekilde ayrıştırılmıştır.
 
-### ⚙️ Backend (.NET 9)
+### Backend (.NET 9)
 - **Framework:** ASP.NET Core Web API
 - **ORM:** Entity Framework Core (Code-First yaklaşımı)
 - **Veritabanı:** PostgreSQL (3NF standardında normalize edilmiş ve hassas veriler için `pgcrypto` şifrelemesi kullanılmıştır)
@@ -66,12 +66,12 @@ Platform, servis odaklı mimari (SOA) prensipleriyle tasarlanmış olup; Core AP
 - **Mimari Desen:** Onion Architecture / Clean Architecture (Domain, Application, Infrastructure, API)
 - **Dependency Injection:** Dahili `Microsoft.Extensions.DependencyInjection`
 
-### 🧠 Yapay Zeka ve Veri İşleme (Python)
+### Yapay Zeka ve Veri İşleme (Python)
 - **Framework:** FastAPI
 - **AI Entegrasyonu:** OpenAI GPT-4 Vision API (OCR ve semantik fraud analizi için)
 - **Mesaj Kuyruğu (Message Broker):** RabbitMQ (Fişlerin arka planda asenkron olarak işlenmesi için)
 
-### ☁️ Altyapı ve DevOps
+### Altyapı ve DevOps
 - **Konteynerizasyon:** Docker & Docker Compose
 - **Önbellekleme:** Redis (Bütçeler ve geçici tokenlar için dağıtık önbellek)
 - **Bulut Depolama:** AWS S3 (Fiş görselleri ve dokümanların güvenli depolanması)
@@ -79,7 +79,7 @@ Platform, servis odaklı mimari (SOA) prensipleriyle tasarlanmış olup; Core AP
 - **Reverse Proxy:** Nginx
 - **Gözlem (Observability):** Serilog (Elasticsearch/Kibana uyumlu yapılandırılmış loglama)
 
-### 💻 Frontend
+### Frontend
 - **Web Paneli:** HTML5, CSS3, Vanilla JavaScript (Özel tasarım sistemi, Modüler Klasör Yapısı, Glassmorphism UI). Framework bağımlılığı olmadan ultra hızlı yükleme.
 - **Mobil Uygulama:** Flutter (Saha çalışanlarının fiş fotoğraflarını çekip yükleyebilmesi için cross-platform uygulama)
 
