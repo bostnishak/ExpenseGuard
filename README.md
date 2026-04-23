@@ -23,9 +23,6 @@ Bulut tabanlı (cloud-native) mimarisi sayesinde platform; çok kiracılı (mult
 
 ## 📸 Ekran Görüntüleri
 
-<details>
-<summary><b>Ekran Görüntülerini Görmek İçin Tıklayın</b></summary>
-
 | | |
 |:---:|:---:|
 | ![Ekran Görüntüsü 1](screenshots/1.png) | ![Ekran Görüntüsü 2](screenshots/2.png) |
@@ -34,8 +31,6 @@ Bulut tabanlı (cloud-native) mimarisi sayesinde platform; çok kiracılı (mult
 | ![Ekran Görüntüsü 7](screenshots/7.png) | ![Ekran Görüntüsü 8](screenshots/8.png) |
 | ![Ekran Görüntüsü 9](screenshots/9.png) | ![Ekran Görüntüsü 10](screenshots/10.png) |
 | ![Ekran Görüntüsü 11](screenshots/11.png) | |
-
-</details>
 
 ---
 
