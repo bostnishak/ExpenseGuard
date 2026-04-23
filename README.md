@@ -27,10 +27,18 @@ Bulut tabanlı (cloud-native) mimarisi sayesinde platform; çok kiracılı (mult
 |:---:|:---:|
 | ![Ekran Görüntüsü 1](screenshots/1.png) | ![Ekran Görüntüsü 2](screenshots/2.png) |
 | ![Ekran Görüntüsü 3](screenshots/3.png) | ![Ekran Görüntüsü 4](screenshots/4.png) |
+
+<details>
+<summary><b>➕ Diğer 7 Ekran Görüntüsünü Görmek İçin Tıklayın</b></summary>
+
+| | |
+|:---:|:---:|
 | ![Ekran Görüntüsü 5](screenshots/5.png) | ![Ekran Görüntüsü 6](screenshots/6.png) |
 | ![Ekran Görüntüsü 7](screenshots/7.png) | ![Ekran Görüntüsü 8](screenshots/8.png) |
 | ![Ekran Görüntüsü 9](screenshots/9.png) | ![Ekran Görüntüsü 10](screenshots/10.png) |
 | ![Ekran Görüntüsü 11](screenshots/11.png) | |
+
+</details>
 
 ---
 
