@@ -92,7 +92,7 @@ class ApiService {
       return ApiResponse(statusCode: 200, data: {'items': items});
     }
     if (path.contains('/api/auth/me')) {
-      return ApiResponse(statusCode: 200, data: {
+      return const ApiResponse(statusCode: 200, data: {
         'email': 'demo@expenseguard.com',
         'fullName': 'Demo Kullanıcı',
         'role': 'admin',
@@ -100,7 +100,7 @@ class ApiService {
         'departmentId': '21111111-1111-1111-1111-111111111111',
       });
     }
-    return ApiResponse(statusCode: 200, data: {'result': []});
+    return const ApiResponse(statusCode: 200, data: {'result': []});
   }
 
   // ── HTTP Helpers ────────────────────────────────────────────
@@ -134,7 +134,7 @@ class ApiService {
         final retryResponse = await http.get(Uri.parse('$_baseUrl$path'), headers: newHeaders);
         return ApiResponse.fromHttp(retryResponse);
       }
-      return ApiResponse(statusCode: 401, data: null, error: 'Oturum süresi doldu');
+      return const ApiResponse(statusCode: 401, data: null, error: 'Oturum süresi doldu');
     }
     return ApiResponse.fromHttp(response);
   }
@@ -146,7 +146,7 @@ class ApiService {
     bool requiresAuth = true,
   }) async {
     if (await isDemoMode()) {
-      return ApiResponse(statusCode: 200, data: {'success': true});
+      return const ApiResponse(statusCode: 200, data: {'success': true});
     }
 
     final headers = await _buildHeaders(requiresAuth: requiresAuth);
@@ -165,7 +165,7 @@ class ApiService {
         );
         return ApiResponse.fromHttp(retryResponse);
       }
-      return ApiResponse(statusCode: 401, data: null, error: 'Oturum süresi doldu');
+      return const ApiResponse(statusCode: 401, data: null, error: 'Oturum süresi doldu');
     }
     return ApiResponse.fromHttp(response);
   }
@@ -177,7 +177,7 @@ class ApiService {
     Map<String, String> fields,
   ) async {
     if (await isDemoMode()) {
-      return ApiResponse(statusCode: 200, data: {'success': true, 'message': 'Demo modda yüklendi'});
+      return const ApiResponse(statusCode: 200, data: {'success': true, 'message': 'Demo modda yüklendi'});
     }
 
     final token  = await getToken();
