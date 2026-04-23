@@ -1,4 +1,4 @@
-# 🛡️ ExpenseGuard
+# ExpenseGuard
 
 **Yapay Zeka Destekli Kurumsal Gider Yönetimi ve Fraud Tespit Platformu**
 
@@ -8,20 +8,20 @@ Bulut tabanlı (cloud-native) mimarisi sayesinde platform; çok kiracılı (mult
 
 ---
 
-## 🌟 Temel Özellikler
+## Temel Özellikler
 
-- **🤖 AI Destekli OCR & Fraud Tespiti:** Fiş veya fatura görüntülerinden Satıcı, Tarih, Tutar ve KDV bilgilerini otomatik çeker. Hafta sonu harcamaları, mükerrer girişler veya sektörel ortalama dışı şüpheli durumlar gibi anomalileri iş kurallarına göre analiz ederek olası fraud vakalarını işaretler.
-- **🏢 Multi-Tenant (Çok Kiracılı) Mimari:** EF Core Global Query Filters kullanılarak veri izolasyonu sağlanır. Tek bir sunucu kurulumu, birbirinden tamamen bağımsız birden fazla şirkete güvenle hizmet verebilir.
-- **🔐 Rol Bazlı Erişim Kontrolü (RBAC):** Sistem Yöneticileri, Departman Müdürleri, Çalışanlar ve Finansal Denetmenler için detaylı ve güvenli yetkilendirme altyapısı sunar.
-- **📊 Gerçek Zamanlı Bütçe Takibi:** Departman bütçeleri Redis üzerinde anlık olarak takip edilir. Aylık ayrılan bütçeyi aşan harcamalarda sistem otomatik uyarı verir veya harcamayı engeller.
-- **🛡️ İleri Düzey Güvenlik & Uyum:** KVKK/GDPR uyumluluğu (çerez yönetimi dahil), Rate Limiting, IDOR koruması ve SSRF/RCE saldırılarını önlemek için katı mimari kontroller.
-- **🔄 Hibrit Çalışma Modu (Demo/API):** Frontend, backend API'sine erişilemediğinde otomatik olarak "Demo Mod"a geçerek, uygulamanın yeteneklerini (AI analiz simulasyonu, rol değişimleri) sergilemeye devam eder.
-- **📑 Muhasebe Entegrasyonu:** Onaylanmış fiş ve harcamalar, ERP sistemlerine aktarılmak üzere doğrudan CSV formatında dışa aktarılabilir.
-- **📈 Kurumsal SEO ve Analitik:** GA4 entegrasyonu ve JSON-LD yapılandırılmış veri standartları ile tam kurumsal görünürlük.
+- **AI Destekli OCR & Fraud Tespiti:** Fiş veya fatura görüntülerinden Satıcı, Tarih, Tutar ve KDV bilgilerini otomatik çeker. Hafta sonu harcamaları, mükerrer girişler veya sektörel ortalama dışı şüpheli durumlar gibi anomalileri iş kurallarına göre analiz ederek olası fraud vakalarını işaretler.
+- **Multi-Tenant (Çok Kiracılı) Mimari:** EF Core Global Query Filters kullanılarak veri izolasyonu sağlanır. Tek bir sunucu kurulumu, birbirinden tamamen bağımsız birden fazla şirkete güvenle hizmet verebilir.
+- **Rol Bazlı Erişim Kontrolü (RBAC):** Sistem Yöneticileri, Departman Müdürleri, Çalışanlar ve Finansal Denetmenler için detaylı ve güvenli yetkilendirme altyapısı sunar.
+- **Gerçek Zamanlı Bütçe Takibi:** Departman bütçeleri Redis üzerinde anlık olarak takip edilir. Aylık ayrılan bütçeyi aşan harcamalarda sistem otomatik uyarı verir veya harcamayı engeller.
+- **İleri Düzey Güvenlik & Uyum:** KVKK/GDPR uyumluluğu (çerez yönetimi dahil), Rate Limiting, IDOR koruması ve SSRF/RCE saldırılarını önlemek için katı mimari kontroller.
+- **Hibrit Çalışma Modu (Demo/API):** Frontend, backend API'sine erişilemediğinde otomatik olarak "Demo Mod"a geçerek, uygulamanın yeteneklerini (AI analiz simulasyonu, rol değişimleri) sergilemeye devam eder.
+- **Muhasebe Entegrasyonu:** Onaylanmış fiş ve harcamalar, ERP sistemlerine aktarılmak üzere doğrudan CSV formatında dışa aktarılabilir.
+- **Kurumsal SEO ve Analitik:** GA4 entegrasyonu ve JSON-LD yapılandırılmış veri standartları ile tam kurumsal görünürlük.
 
 ---
 
-## 📁 Proje Dizin Yapısı
+## Proje Dizin Yapısı
 
 Platform frontend ve backend/mobil bileşenlerini modüler bir düzende tutar:
 - `/pages/` - Ana uygulama ekranları (Login, Dashboard, 404 vb.)
@@ -33,7 +33,7 @@ Platform frontend ve backend/mobil bileşenlerini modüler bir düzende tutar:
 
 ---
 
-## 🛠️ Mimari ve Teknoloji Yığını
+## Mimari ve Teknoloji Yığını
 
 Platform, servis odaklı mimari (SOA) prensipleriyle tasarlanmış olup; Core API, AI işleme motoru ve önbellekleme (caching) katmanları yatayda ölçeklenebilecek şekilde ayrıştırılmıştır.
 
@@ -117,7 +117,7 @@ docker-compose up -d --build
 
 ---
 
-## 🗄️ Veritabanı Şeması Güvenliği
+## Veritabanı Şeması Güvenliği
 
 PostgreSQL veritabanımız, kurumsal veri güvenliği için gelişmiş özellikler kullanır:
 - Veri tabanında atıl durumdaki (at rest) hassas finansal veriler (`amount_encrypted`, `tax_amount_encrypted`), **`pgcrypto`** eklentisi ile simetrik olarak şifrelenir.
@@ -126,5 +126,5 @@ PostgreSQL veritabanımız, kurumsal veri güvenliği için gelişmiş özellikl
 
 ---
 
-## 📄 Lisans
+## Lisans
 Bu proje ticari ve gizlidir. Bu kaynak kodun izinsiz kopyalanması, dağıtılması veya kullanılması kesinlikle yasaktır.
