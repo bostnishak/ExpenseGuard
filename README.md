@@ -25,22 +25,15 @@ Bulut tabanlı (cloud-native) mimarisi sayesinde platform; çok kiracılı (mult
 
 <details>
 <summary><b>Ekran Görüntülerini Görmek İçin Tıklayın</b></summary>
-<br>
 
-
-<p align="center">
-  <img src="screenshots/1.png" width="48%" style="margin-bottom: 10px;" alt="Ekran Görüntüsü 1" />
-  <img src="screenshots/2.png" width="48%" style="margin-bottom: 10px;" alt="Ekran Görüntüsü 2" />
-  <img src="screenshots/3.png" width="48%" style="margin-bottom: 10px;" alt="Ekran Görüntüsü 3" />
-  <img src="screenshots/4.png" width="48%" style="margin-bottom: 10px;" alt="Ekran Görüntüsü 4" />
-  <img src="screenshots/5.png" width="48%" style="margin-bottom: 10px;" alt="Ekran Görüntüsü 5" />
-  <img src="screenshots/6.png" width="48%" style="margin-bottom: 10px;" alt="Ekran Görüntüsü 6" />
-  <img src="screenshots/7.png" width="48%" style="margin-bottom: 10px;" alt="Ekran Görüntüsü 7" />
-  <img src="screenshots/8.png" width="48%" style="margin-bottom: 10px;" alt="Ekran Görüntüsü 8" />
-  <img src="screenshots/9.png" width="48%" style="margin-bottom: 10px;" alt="Ekran Görüntüsü 9" />
-  <img src="screenshots/10.png" width="48%" style="margin-bottom: 10px;" alt="Ekran Görüntüsü 10" />
-  <img src="screenshots/11.png" width="48%" style="margin-bottom: 10px;" alt="Ekran Görüntüsü 11" />
-</p>
+| | |
+|:---:|:---:|
+| ![Ekran Görüntüsü 1](screenshots/1.png) | ![Ekran Görüntüsü 2](screenshots/2.png) |
+| ![Ekran Görüntüsü 3](screenshots/3.png) | ![Ekran Görüntüsü 4](screenshots/4.png) |
+| ![Ekran Görüntüsü 5](screenshots/5.png) | ![Ekran Görüntüsü 6](screenshots/6.png) |
+| ![Ekran Görüntüsü 7](screenshots/7.png) | ![Ekran Görüntüsü 8](screenshots/8.png) |
+| ![Ekran Görüntüsü 9](screenshots/9.png) | ![Ekran Görüntüsü 10](screenshots/10.png) |
+| ![Ekran Görüntüsü 11](screenshots/11.png) | |
 
 </details>
 
