@@ -15,6 +15,11 @@ public class User
     public UserRole      Role         { get; set; } = UserRole.Employee;
     public bool          IsActive     { get; set; } = true;
     public DateTimeOffset CreatedAt   { get; set; } = DateTimeOffset.UtcNow;
+    
+    // Email Verification Phase 1
+    public bool          IsEmailVerified       { get; set; } = false;
+    public string?       VerificationToken     { get; set; }
+    public DateTimeOffset? VerificationExpiresAt { get; set; }
 
     public string FullName => $"{FirstName} {LastName}";
 

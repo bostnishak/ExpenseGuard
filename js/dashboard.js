@@ -53,16 +53,11 @@ async function apiFetch(path, opts = {}) {
   if (isDemo()) {
     return demoFallback(path, opts);
   }
-  const url = `${API_BASE}${path}`;
-  const headers = {
-    'Content-Type': 'application/json',
+  opts.headers = {
     'X-Tenant-Domain': TENANT_DOMAIN,
-    ...(AUTH_TOKEN ? { 'Authorization': `Bearer ${AUTH_TOKEN}` } : {}),
-    ...(opts.headers || {}),
+    ...(opts.headers || {})
   };
-  const res = await fetch(url, { ...opts, headers });
-  if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
-  return res.json();
+  return window.egApi.fetch(path.replace('/api', ''), opts);
 }
 
 // ── DEMO FALLBACK DATA ────────────────────────────────────────
@@ -168,13 +163,31 @@ function switchSection(name) {
 }
 
 document.querySelectorAll('.nav-item').forEach(btn => {
-  btn.addEventListener('click', () => switchSection(btn.dataset.section));
+  btn.addEventListener('click', () => {
+    switchSection(btn.dataset.section);
+    // Mobilde sidebar'ı kapat
+    if (window.innerWidth <= 960) closeSidebar();
+  });
 });
 
-// ── SIDEBAR TOGGLE ─────────────────────────────────────────────
-document.getElementById('sidebarToggle').addEventListener('click', () => {
-  document.getElementById('sidebar').classList.toggle('open');
-});
+// ── SIDEBAR TOGGLE ───────────────────────────────────────────────
+const sidebar        = document.getElementById('sidebar');
+const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+function openSidebar() {
+  sidebar.classList.add('open');
+  sidebarOverlay.classList.add('active');
+}
+function closeSidebar() {
+  sidebar.classList.remove('open');
+  sidebarOverlay.classList.remove('active');
+}
+function toggleSidebar() {
+  sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+}
+
+document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
+sidebarOverlay.addEventListener('click', closeSidebar);
 
 // ── SESSION INIT (from login.html) ─────────────────────────────
 (function initSession() {
@@ -302,25 +315,41 @@ let statusChartInst = null;
 let trendChartInst  = null;
 
 async function loadOverview() {
-  let summary, recentHighRisk;
+  let summary = { totalReceipts: 0, pendingCount: 0, approvedCount: 0, rejectedCount: 0, flaggedCount: 0, highRiskCount: 0, thisMonthSpend: 0 };
+  let recentHighRisk = [];
 
   try {
-    const data = await apiFetch('/api/receipts/my?pageSize=50');
-    const receipts = data.items || data || [];
-    summary = {
-      totalReceipts: receipts.length,
-      pendingCount:  receipts.filter(r => r.status === 'Pending').length,
-      approvedCount: receipts.filter(r => r.status === 'Approved').length,
-      rejectedCount: receipts.filter(r => r.status === 'Rejected').length,
-      flaggedCount:  receipts.filter(r => r.status === 'Flagged').length,
-      highRiskCount: receipts.filter(r => r.riskLevel === 'High').length,
-      thisMonthSpend: receipts.filter(r => r.status !== 'Rejected').reduce((s,r) => s + r.amount, 0),
-    };
-    recentHighRisk = receipts.filter(r => r.riskLevel === 'High').slice(0, 5);
+    if (isDemo()) {
+      // Demo modda eski mantık
+      const data = await apiFetch('/api/receipts/my?pageSize=50');
+      const receipts = data.items || data || [];
+      summary = {
+        totalReceipts: receipts.length,
+        pendingCount:  receipts.filter(r => r.status === 'Pending').length,
+        approvedCount: receipts.filter(r => r.status === 'Approved').length,
+        rejectedCount: receipts.filter(r => r.status === 'Rejected').length,
+        flaggedCount:  receipts.filter(r => r.status === 'Flagged').length,
+        highRiskCount: receipts.filter(r => r.riskLevel === 'High').length,
+        thisMonthSpend: receipts.filter(r => r.status !== 'Rejected').reduce((s,r) => s + r.amount, 0),
+      };
+      recentHighRisk = receipts.filter(r => r.riskLevel === 'High').slice(0, 5);
+    } else {
+      // Gerçek API
+      const stats = await apiFetch('/dashboard/summary');
+      summary = {
+        totalReceipts: stats.totalReceipts,
+        pendingCount: stats.pendingReceipts,
+        approvedCount: stats.approvedReceipts,
+        rejectedCount: stats.rejectedReceipts,
+        flaggedCount: 0,
+        highRiskCount: 0, // TODO: dashboard summary will return these later
+        thisMonthSpend: stats.totalAmount
+      };
+      const recent = await apiFetch('/dashboard/recent-activity?count=5');
+      recentHighRisk = recent.filter(r => r.riskLevel === 'High');
+    }
   } catch (e) {
     console.error(e);
-    summary = { totalReceipts: 0, pendingCount: 0, approvedCount: 0, rejectedCount: 0, flaggedCount: 0, highRiskCount: 0, thisMonthSpend: 0 };
-    recentHighRisk = [];
   }
 
   // KPIs
@@ -549,18 +578,25 @@ function renderBudgetResult(el, data) {
 let histInst = null, catInst = null;
 
 async function loadAnalytics() {
-  const receipts = allReceipts;
+  let analyticsData;
+  try {
+    analyticsData = await apiFetch('/api/dashboard/analytics');
+  } catch (e) {
+    console.error("Analytics fetch failed:", e);
+    return;
+  }
+
+  const riskDist = analyticsData.riskDistribution || {};
+  const catDist = analyticsData.categoryDistribution || {};
 
   // Risk Histogram
-  const buckets = Array(10).fill(0);
-  receipts.forEach(r => {
-    if (r.fraudScore != null) {
-      const i = Math.min(Math.floor(r.fraudScore / 10), 9);
-      buckets[i]++;
-    }
+  const histLabels = ['0-10','10-20','20-30','30-50','50-70','70-100'];
+  const buckets = histLabels.map(label => riskDist[label] || 0);
+  const histColors = histLabels.map(l => {
+    if (l === '70-100' || l === '50-70') return '#ef4444';
+    if (l === '30-50' || l === '20-30') return '#f59e0b';
+    return '#10b981';
   });
-  const histLabels = ['0-10','10-20','20-30','30-40','40-50','50-60','60-70','70-80','80-90','90-100'];
-  const histColors = histLabels.map((_,i) => i >= 7 ? '#ef4444' : i >= 5 ? '#f59e0b' : '#10b981');
 
   if (histInst) histInst.destroy();
   histInst = new Chart(document.getElementById('riskHistogram').getContext('2d'), {
@@ -580,14 +616,12 @@ async function loadAnalytics() {
   });
 
   // Category Pie
-  const catMap = {};
-  receipts.forEach(r => { catMap[r.category] = (catMap[r.category] || 0) + r.amount; });
   if (catInst) catInst.destroy();
   catInst = new Chart(document.getElementById('categoryChart').getContext('2d'), {
     type: 'pie',
     data: {
-      labels: Object.keys(catMap).map(c => CAT_LABELS[c] || c),
-      datasets: [{ data: Object.values(catMap), backgroundColor: ['#6366f1','#10b981','#f59e0b','#ef4444','#a855f7','#3b82f6'], borderWidth: 2, borderColor: '#111827' }],
+      labels: Object.keys(catDist).map(c => CAT_LABELS[c] || c),
+      datasets: [{ data: Object.values(catDist), backgroundColor: ['#6366f1','#10b981','#f59e0b','#ef4444','#a855f7','#3b82f6'], borderWidth: 2, borderColor: '#111827' }],
     },
     options: {
       responsive: true, maintainAspectRatio: false,
@@ -595,17 +629,15 @@ async function loadAnalytics() {
     },
   });
 
-  // Fraud Summary
-  const highRisk = receipts.filter(r => (r.fraudScore || 0) >= 60).length;
-  const medRisk  = receipts.filter(r => (r.fraudScore || 0) >= 30 && (r.fraudScore || 0) < 60).length;
-  const lowRisk  = receipts.filter(r => (r.fraudScore || 0) < 30).length;
-  const avgScore = receipts.filter(r => r.fraudScore != null).reduce((s,r,_,a) => s + r.fraudScore/a.length, 0);
+  // Fraud Summary (Approximate from buckets or we could fetch stats, using simple calculation here)
+  const highRisk = (riskDist['70-100']||0) + (riskDist['50-70']||0);
+  const medRisk  = (riskDist['30-50']||0) + (riskDist['20-30']||0);
+  const lowRisk  = (riskDist['10-20']||0) + (riskDist['0-10']||0);
 
   document.getElementById('fraudSummary').innerHTML = `
-    <div class="fraud-stat"><div class="fraud-stat-value" style="color:var(--red)">${highRisk}</div><div class="fraud-stat-label">Yüksek Riskli (≥60)</div></div>
-    <div class="fraud-stat"><div class="fraud-stat-value" style="color:var(--amber)">${medRisk}</div><div class="fraud-stat-label">Orta Riskli (30-60)</div></div>
-    <div class="fraud-stat"><div class="fraud-stat-value" style="color:var(--green)">${lowRisk}</div><div class="fraud-stat-label">Düşük Riskli (<30)</div></div>
-    <div class="fraud-stat"><div class="fraud-stat-value" style="color:var(--accent2)">${avgScore.toFixed(1)}</div><div class="fraud-stat-label">Ortalama Fraud Skoru</div></div>
+    <div class="fraud-stat"><div class="fraud-stat-value" style="color:var(--red)">${highRisk}</div><div class="fraud-stat-label">Yüksek Riskli (≥50)</div></div>
+    <div class="fraud-stat"><div class="fraud-stat-value" style="color:var(--amber)">${medRisk}</div><div class="fraud-stat-label">Orta Riskli (20-50)</div></div>
+    <div class="fraud-stat"><div class="fraud-stat-value" style="color:var(--green)">${lowRisk}</div><div class="fraud-stat-label">Düşük Riskli (<20)</div></div>
   `;
 }
 
@@ -808,21 +840,59 @@ if (previewRemove) {
   });
 }
 
-// ── DEMO OCR SCENARIOS (gerçekçi Türkiye fiş verileri) ─────────
-const DEMO_OCR_SCENARIOS = [
-  { vendorName: 'Migros Ataşehir AVM',    amount: 347.85, taxAmount: 62.61,  category: 'food',          dayOffset: 0 },
-  { vendorName: 'Shell Kadıköy İstasyonu', amount: 1120.00, taxAmount: 201.60, category: 'fuel',         dayOffset: -1 },
-  { vendorName: 'Hilton Istanbul Bomonti', amount: 3750.00, taxAmount: 675.00, category: 'accommodation', dayOffset: -2 },
-  { vendorName: 'Uber Türkiye',            amount: 214.50, taxAmount: 38.61,  category: 'transport',     dayOffset: 0 },
-  { vendorName: 'Starbucks Maslak',        amount: 189.00, taxAmount: 34.02,  category: 'food',          dayOffset: 0 },
-  { vendorName: 'Teknosa Levent Park',     amount: 2890.00, taxAmount: 520.20, category: 'office',       dayOffset: -1 },
-  { vendorName: 'Pegasus Havayolları',     amount: 1450.00, taxAmount: 261.00, category: 'transport',    dayOffset: -3 },
-  { vendorName: 'BiTaksi',                 amount: 78.50, taxAmount: 14.13,   category: 'transport',     dayOffset: 0 },
-  { vendorName: 'Carrefour Maltepe',       amount: 523.40, taxAmount: 94.21,  category: 'food',          dayOffset: 0 },
-  { vendorName: 'BP Petrol Ümraniye',      amount: 980.00, taxAmount: 176.40, category: 'fuel',          dayOffset: -1 },
-  { vendorName: 'Marriott Şişli',          amount: 4200.00, taxAmount: 756.00, category: 'accommodation', dayOffset: -2 },
-  { vendorName: 'Yemeksepeti Kurumsal',    amount: 268.90, taxAmount: 48.40,  category: 'food',          dayOffset: 0 },
-];
+// ── OPENAI GPT-4 VISION — Gerçek fiş OCR ───────────────────────
+const OPENAI_API_KEY = ''; // Güvenlik nedeniyle kaldırıldı. Production'da backend üzerinden çağrılmalıdır.
+
+async function analyzeReceiptWithAI(file) {
+  const toBase64 = (f) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(f);
+  });
+
+  const base64Image = await toBase64(file);
+  const mimeType = file.type || 'image/jpeg';
+
+  const prompt = `Bu bir fiş veya fatura görüntüsüdür. Aşağıdaki bilgileri JSON formatında çıkar:
+{
+  "vendorName": "İşyeri/mağaza adı (string)",
+  "receiptDate": "Tarih YYYY-MM-DD formatında (string)",
+  "amount": toplam ödenecek tutar (number),
+  "taxAmount": KDV tutarı (number, yoksa 0),
+  "category": "food, transport, fuel, accommodation, office, entertainment, other seçeneklerinden biri"
+}
+Sadece JSON döndür, başka açıklama ekleme. Türkçe fişlerde 'Ödenecek Toplam', 'Net Toplam' gibi alanları tutar olarak kullan. KDV bulamazsan 0 yaz. Tarih bulamazsan bugünün tarihini kullan.`;
+
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${OPENAI_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      max_tokens: 300,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: prompt },
+          { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64Image}`, detail: 'high' } }
+        ]
+      }]
+    })
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error?.message || 'OpenAI API hatası');
+  }
+
+  const data = await res.json();
+  const content = data.choices[0].message.content.trim();
+  const jsonStr = content.replace(/```json|```/g, '').trim();
+  return JSON.parse(jsonStr);
+}
 
 async function handleFileUpload(file) {
   if (file.size > 10 * 1024 * 1024) {
@@ -840,66 +910,46 @@ async function handleFileUpload(file) {
   reader.onload = (e) => { previewImg.src = e.target.result; };
   reader.readAsDataURL(file);
 
-  // ── DEMO MOD: Gerçekçi AI/OCR simülasyonu ─────────────────
-  if (isDemo()) {
-    // Simulate AI processing stages
-    const statusEl = ocrStatus.querySelector('span');
-    const stages = [
-      'Görüntü ön işleniyor...',
-      'OCR metin çıkarılıyor...',
-      'AI fiş alanlarını analiz ediyor...',
-      'Fraud risk skoru hesaplanıyor...',
-    ];
+  // ── GPT-4 Vision ile Gerçek OCR ──────────────────────────────
+  const statusEl = ocrStatus.querySelector('span');
+  const stages = [
+    'Görüntü yükleniyor...',
+    'GPT-4 Vision\'a gönderiliyor...',
+    'Fiş bilgileri okunuyor...',
+    'Kategori belirleniyor...',
+  ];
 
-    for (let i = 0; i < stages.length; i++) {
-      if (statusEl) statusEl.textContent = stages[i];
-      await new Promise(r => setTimeout(r, 600 + Math.random() * 400));
+  let stageIdx = 0;
+  if (statusEl) statusEl.textContent = stages[0];
+  const stageInterval = setInterval(() => {
+    if (stageIdx < stages.length - 1) {
+      stageIdx++;
+      if (statusEl) statusEl.textContent = stages[stageIdx];
     }
+  }, 1400);
 
-    // Pick a random demo scenario
-    const scenario = DEMO_OCR_SCENARIOS[Math.floor(Math.random() * DEMO_OCR_SCENARIOS.length)];
-    const d = new Date();
-    d.setDate(d.getDate() + scenario.dayOffset);
-
-    document.getElementById('ocrVendor').value = scenario.vendorName;
-    document.getElementById('ocrDate').value   = d.toISOString().split('T')[0];
-    document.getElementById('ocrAmount').value = scenario.amount;
-    document.getElementById('ocrTax').value    = scenario.taxAmount;
-
-    ocrStatus.style.display = 'none';
-    ocrResult.style.display = 'block';
-    showToast('AI analizi tamamlandı — fiş bilgileri otomatik çıkarıldı!');
-    return;
-  }
-
-  // ── GERÇEK API MODU ───────────────────────────────────────
   try {
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    // OCR çağrısı (C# üzerinden AI Python servisine gider)
-    const res = await fetch(`${API_BASE}/api/receipts/ocr-parse`, {
-      method: 'POST',
-      headers: {
-        'X-Tenant-Domain': TENANT_DOMAIN,
-        ...(AUTH_TOKEN ? { 'Authorization': `Bearer ${AUTH_TOKEN}` } : {}),
-      },
-      body: formData
-    });
-    
-    if (!res.ok) throw new Error('OCR Failed');
-    const data = await res.json();
-    
-    document.getElementById('ocrVendor').value = data.vendorName || '';
-    document.getElementById('ocrDate').value   = data.receiptDate || new Date().toISOString().split('T')[0];
-    document.getElementById('ocrAmount').value = data.amount || 0;
-    document.getElementById('ocrTax').value    = data.taxAmount || 0;
-  } catch (e) {
-    console.error(e);
-    showToast('OCR analizi başarısız', 'error');
-  } finally {
+    const result = await analyzeReceiptWithAI(file);
+    clearInterval(stageInterval);
+
+    document.getElementById('ocrVendor').value = result.vendorName || '';
+    document.getElementById('ocrDate').value   = result.receiptDate || new Date().toISOString().split('T')[0];
+    document.getElementById('ocrAmount').value = result.amount || 0;
+    document.getElementById('ocrTax').value    = result.taxAmount || 0;
+
+    const catSelect = document.getElementById('ocrCategory');
+    if (catSelect && result.category) catSelect.value = result.category;
+
     ocrStatus.style.display = 'none';
     ocrResult.style.display = 'block';
+    showToast('✅ AI analizi tamamlandı — fiş bilgileri otomatik çıkarıldı!');
+  } catch (aiErr) {
+    clearInterval(stageInterval);
+    console.error('GPT-4 Vision hatası:', aiErr);
+    showToast('AI analizi başarısız: ' + aiErr.message, 'error');
+    ocrStatus.style.display = 'none';
+    ocrResult.style.display = 'block';
+
   }
 }
 
@@ -909,7 +959,7 @@ if (submitOcrBtn) {
   submitOcrBtn.addEventListener('click', async () => {
     const payload = {
       vendorName: document.getElementById('ocrVendor').value,
-      category: 'other',
+      category: document.getElementById('ocrCategory')?.value || 'other',
       amount: parseFloat(document.getElementById('ocrAmount').value),
       receiptDate: document.getElementById('ocrDate').value,
       method: 'OCR'

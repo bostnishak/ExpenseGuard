@@ -70,6 +70,38 @@ public class ReceiptRepository : IReceiptRepository
                      && r.ReceiptDate.Month == month
                      && r.Status != Domain.Enums.ReceiptStatus.Rejected)
             .SumAsync(r => r.Amount, ct);
+
+    public async Task<(int TotalCount, int ApprovedCount, int RejectedCount, int PendingCount, decimal TotalAmount)> GetStatsAsync(Guid tenantId, CancellationToken ct = default)
+    {
+        var query = _db.Receipts.Where(r => r.TenantId == tenantId);
+        
+        var total = await query.CountAsync(ct);
+        var approved = await query.CountAsync(r => r.Status == Domain.Enums.ReceiptStatus.Approved, ct);
+        var rejected = await query.CountAsync(r => r.Status == Domain.Enums.ReceiptStatus.Rejected, ct);
+        var pending = await query.CountAsync(r => r.Status == Domain.Enums.ReceiptStatus.Pending || r.Status == Domain.Enums.ReceiptStatus.AiProcessing, ct);
+        var amount = await query.Where(r => r.Status != Domain.Enums.ReceiptStatus.Rejected).SumAsync(r => r.Amount, ct);
+
+        return (total, approved, rejected, pending, amount);
+    }
+
+    public async Task<IReadOnlyList<Receipt>> GetRecentActivityAsync(Guid tenantId, int count, CancellationToken ct = default)
+    {
+        return await _db.Receipts
+            .Where(r => r.TenantId == tenantId)
+            .OrderByDescending(r => r.SubmittedAt)
+            .Take(count)
+            .ToListAsync(ct);
+    }
+
+    public async Task<bool> IsDuplicateAsync(Guid tenantId, string vendorName, decimal amount, DateOnly receiptDate, Guid? excludeId = null, CancellationToken ct = default)
+    {
+        return await _db.Receipts.AnyAsync(r => 
+            r.TenantId == tenantId &&
+            r.VendorName.ToLower() == vendorName.ToLower() &&
+            r.Amount == amount &&
+            r.ReceiptDate == receiptDate &&
+            (excludeId == null || r.Id != excludeId), ct);
+    }
 }
 
 // ── User Repository ──────────────────────────────────────────
@@ -134,4 +166,14 @@ public class BudgetRepository : IBudgetRepository
             .Where(b => b.DepartmentId == departmentId)
             .OrderByDescending(b => b.PeriodYear).ThenByDescending(b => b.PeriodMonth)
             .ToListAsync(ct);
+}
+
+// ── Department Repository ────────────────────────────────────
+public class DepartmentRepository : IDepartmentRepository
+{
+    private readonly AppDbContext _db;
+    public DepartmentRepository(AppDbContext db) => _db = db;
+    
+    public async Task<IReadOnlyList<Department>> GetAllForTenantAsync(Guid tenantId, CancellationToken ct = default)
+        => await _db.Departments.Where(d => d.TenantId == tenantId).ToListAsync(ct);
 }

@@ -14,6 +14,9 @@ public interface IReceiptRepository
     Task AddAsync(Receipt receipt, CancellationToken ct = default);
     Task UpdateAsync(Receipt receipt, CancellationToken ct = default);
     Task<decimal> GetMonthlySpendAsync(Guid departmentId, int year, int month, CancellationToken ct = default);
+    Task<(int TotalCount, int ApprovedCount, int RejectedCount, int PendingCount, decimal TotalAmount)> GetStatsAsync(Guid tenantId, CancellationToken ct = default);
+    Task<IReadOnlyList<Receipt>> GetRecentActivityAsync(Guid tenantId, int count, CancellationToken ct = default);
+    Task<bool> IsDuplicateAsync(Guid tenantId, string vendorName, decimal amount, DateOnly receiptDate, Guid? excludeId = null, CancellationToken ct = default);
 }
 
 public interface IUserRepository
@@ -29,6 +32,11 @@ public interface IBudgetRepository
     Task<BudgetLimit?> GetAsync(Guid departmentId, int year, int month, CancellationToken ct = default);
     Task UpsertAsync(BudgetLimit budget, CancellationToken ct = default);
     Task<IReadOnlyList<BudgetLimit>> GetByDepartmentAsync(Guid departmentId, CancellationToken ct = default);
+}
+
+public interface IDepartmentRepository
+{
+    Task<IReadOnlyList<Department>> GetAllForTenantAsync(Guid tenantId, CancellationToken ct = default);
 }
 
 // ── Service Interfaces ────────────────────────────────────────

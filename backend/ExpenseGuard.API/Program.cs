@@ -55,6 +55,7 @@ builder.Services.AddSingleton<IConnection>(_ =>
 builder.Services.AddScoped<IReceiptRepository, ReceiptRepository>();
 builder.Services.AddScoped<IUserRepository,    UserRepository>();
 builder.Services.AddScoped<IBudgetRepository,  BudgetRepository>();
+builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
 
 // ── DI BINDINGS — Services ─────────────────────────────────
 builder.Services.AddHttpContextAccessor();
@@ -67,6 +68,7 @@ builder.Services.AddScoped<IEmailService,       SmtpEmailService>();
 builder.Services.AddScoped<BillingService>();
 builder.Services.AddScoped<AuthService>();       // AppDbContext bağımlılığını DI karşılar
 builder.Services.AddScoped<ReceiptService>();
+builder.Services.AddScoped<AnalyticsService>();
 
 // ── JWT AUTHENTICATION ─────────────────────────────────────
 var jwtSecret = cfg["Jwt:Secret"] ?? throw new Exception("JWT Secret eksik!");
@@ -155,8 +157,21 @@ app.UseMiddleware<TenantMiddleware>();             // 5. Tenant çözümleme
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Health check
-app.MapGet("/health", () => new { status = "healthy", service = "expenseguard-api", time = DateTime.UtcNow });
+app.MapGet("/health", async (ExpenseGuard.Infrastructure.Persistence.AppDbContext db, RabbitMQ.Client.IConnection rabbitConn) => 
+{
+    bool dbOk = await db.Database.CanConnectAsync();
+    bool rabbitOk = rabbitConn.IsOpen;
+
+    return new {
+        status = (dbOk && rabbitOk) ? "healthy" : "unhealthy",
+        version = "1.0.0",
+        services = new {
+            database = dbOk ? "connected" : "disconnected",
+            rabbitmq = rabbitOk ? "connected" : "disconnected"
+        },
+        time = DateTime.UtcNow
+    };
+});
 
 app.MapControllers();
 

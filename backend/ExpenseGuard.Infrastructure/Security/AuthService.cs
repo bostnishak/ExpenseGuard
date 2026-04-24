@@ -75,29 +75,77 @@ public class AuthService
         );
     }
 
-    // ── REGISTER ───────────────────────────────────────────────
-    public async Task<UserDto> RegisterAsync(RegisterRequest req, Guid tenantId, CancellationToken ct = default)
+    // ── REGISTER (Self-Service) ────────────────────────────────
+    public async Task<UserDto> RegisterAsync(RegisterRequest req, CancellationToken ct = default)
     {
-        if (await _users.GetByEmailAsync(req.Email, tenantId, ct) != null)
+        // Benzersiz bir domain üret (SaaS Tenant)
+        var domain = req.CompanyName.ToLowerInvariant().Replace(" ", "") + ".com";
+        if (await _db.Tenants.AnyAsync(t => t.Domain == domain, ct))
         {
-            throw new InvalidOperationException("Bu e-posta adresi zaten kullanımda.");
+            domain = req.CompanyName.ToLowerInvariant().Replace(" ", "") + Guid.NewGuid().ToString("N").Substring(0, 4) + ".com";
         }
+
+        var tenant = new Tenant
+        {
+            Name = req.CompanyName,
+            Domain = domain,
+            Plan = "starter"
+        };
+        _db.Tenants.Add(tenant);
+
+        var dept = new Department
+        {
+            TenantId = tenant.Id,
+            Name = "Genel Yönetim",
+            Code = "GENEL"
+        };
+        _db.Departments.Add(dept);
+
+        var verificationToken = Guid.NewGuid().ToString("N");
 
         var user = new User
         {
-            TenantId = tenantId,
+            TenantId = tenant.Id,
+            DepartmentId = dept.Id,
             Email = req.Email,
             PasswordHash = HashPassword(req.Password),
             FirstName = req.FirstName,
             LastName = req.LastName,
-            Role = ExpenseGuard.Domain.Enums.UserRole.Employee, // Varsayılan rol
-            IsActive = true
+            Role = ExpenseGuard.Domain.Enums.UserRole.Admin, // Kaydı başlatan şirket yöneticisidir
+            IsActive = true,
+            IsEmailVerified = false,
+            VerificationToken = verificationToken,
+            VerificationExpiresAt = DateTimeOffset.UtcNow.AddDays(1)
         };
 
         _db.Users.Add(user);
         await _db.SaveChangesAsync(ct);
 
+        // Doğrulama maili at
+        var verifyLink = $"https://app.expenseguard.com/verify-email?token={verificationToken}";
+        var body = $"Merhaba {user.FirstName},<br><br>ExpenseGuard hesabınızı oluşturduğunuz için teşekkürler!<br>Lütfen e-posta adresinizi doğrulamak için aşağıdaki bağlantıya tıklayın:<br><a href='{verifyLink}'>{verifyLink}</a><br><br>ExpenseGuard Ekibi";
+        await _email.SendEmailAsync(user.Email, "E-Posta Doğrulama - ExpenseGuard", body, ct);
+
         return new UserDto(user.Id, user.FullName, user.Email, user.Role.ToString(), user.DepartmentId);
+    }
+
+    // ── VERIFY EMAIL ───────────────────────────────────────────
+    public async Task<bool> VerifyEmailAsync(string token, CancellationToken ct = default)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.VerificationToken == token, ct);
+        if (user is null || user.VerificationExpiresAt < DateTimeOffset.UtcNow)
+        {
+            return false;
+        }
+
+        user.IsEmailVerified = true;
+        user.VerificationToken = null;
+        user.VerificationExpiresAt = null;
+        
+        _db.Users.Update(user);
+        await _db.SaveChangesAsync(ct);
+
+        return true;
     }
 
     // ── REFRESH TOKEN ──────────────────────────────────────────

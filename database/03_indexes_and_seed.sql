@@ -80,3 +80,62 @@ INSERT INTO budget_limits (tenant_id, department_id, period_year, period_month, 
     ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', 2024, 1, 25000.00),
     ('11111111-1111-1111-1111-111111111111', '23333333-3333-3333-3333-333333333333', 2024, 1, 75000.00),
     ('11111111-1111-1111-1111-111111111111', '24444444-4444-4444-4444-444444444444', 2024, 1, 100000.00);
+
+-- Generate 200+ Demo Receipts
+DO $$
+DECLARE
+    tenant_id UUID := '11111111-1111-1111-1111-111111111111';
+    dept_it UUID := '21111111-1111-1111-1111-111111111111';
+    dept_hr UUID := '22222222-2222-2222-2222-222222222222';
+    dept_fin UUID := '23333333-3333-3333-3333-333333333333';
+    dept_sales UUID := '24444444-4444-4444-4444-444444444444';
+    emp_id UUID := '34444444-4444-4444-4444-444444444444';
+    mgr_id UUID := '33333333-3333-3333-3333-333333333333';
+    vendors TEXT[] := ARRAY['Migros', 'Shell', 'THY', 'Hilton', 'Starbucks', 'Nusr-Et', 'Teknosa', 'BiTaksi', 'Uber', 'MacBook Store', 'Amazon', 'IKEA', 'Petrol Ofisi', 'Opet', 'Divan Hotel'];
+    categories TEXT[] := ARRAY['food', 'fuel', 'transport', 'accommodation', 'office', 'entertainment', 'other'];
+    statuses TEXT[] := ARRAY['Approved', 'Approved', 'Approved', 'Approved', 'Rejected', 'Pending', 'Flagged', 'AiProcessing'];
+    v_vendor TEXT;
+    v_cat TEXT;
+    v_status TEXT;
+    v_amount NUMERIC;
+    v_tax NUMERIC;
+    v_date DATE;
+    v_risk TEXT;
+    v_score INT;
+BEGIN
+    FOR i IN 1..250 LOOP
+        v_vendor := vendors[1 + floor(random() * array_length(vendors, 1))];
+        v_cat := categories[1 + floor(random() * array_length(categories, 1))];
+        v_status := statuses[1 + floor(random() * array_length(statuses, 1))];
+        v_amount := round((random() * 4800 + 20)::numeric, 2);
+        v_tax := round((v_amount * 0.20)::numeric, 2);
+        v_date := current_date - floor(random() * 90)::integer;
+        
+        IF v_status = 'Rejected' OR v_status = 'Flagged' THEN
+            v_risk := 'High';
+            v_score := floor(random() * 40 + 60); -- 60-100
+        ELSIF v_status = 'Pending' OR v_status = 'AiProcessing' THEN
+            v_risk := 'Pending';
+            v_score := NULL;
+        ELSE
+            v_risk := 'Low';
+            v_score := floor(random() * 30); -- 0-30
+        END IF;
+
+        INSERT INTO expense_receipts (
+            id, tenant_id, department_id, submitted_by, vendor_name, category, 
+            amount, tax_amount, receipt_date, status, risk_level, fraud_score, created_at
+        ) VALUES (
+            gen_random_uuid(), tenant_id, 
+            CASE floor(random() * 4) 
+                WHEN 0 THEN dept_it 
+                WHEN 1 THEN dept_hr 
+                WHEN 2 THEN dept_fin 
+                ELSE dept_sales 
+            END,
+            CASE floor(random() * 2) WHEN 0 THEN emp_id ELSE mgr_id END,
+            v_vendor, v_cat, v_amount, v_tax, v_date, v_status, v_risk, v_score,
+            (current_timestamp - (floor(random() * 90) || ' days')::interval)
+        );
+    END LOOP;
+END $$;

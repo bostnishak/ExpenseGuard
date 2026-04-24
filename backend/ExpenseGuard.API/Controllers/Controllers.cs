@@ -15,6 +15,30 @@ public class AuthController : ControllerBase
 
     public AuthController(AuthService auth) => _auth = auth;
 
+    [HttpPost("register")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Register([FromBody] RegisterRequest req, CancellationToken ct)
+    {
+        try
+        {
+            var user = await _auth.RegisterAsync(req, ct);
+            return Ok(new { message = "Kayıt başarılı. Lütfen e-postanızı doğrulayın.", user });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpPost("verify-email")]
+    [AllowAnonymous]
+    public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest req, CancellationToken ct)
+    {
+        var success = await _auth.VerifyEmailAsync(req.Token, ct);
+        if (!success) return BadRequest(new { error = "Geçersiz veya süresi dolmuş doğrulama tokeni." });
+        return Ok(new { message = "E-postanız başarıyla doğrulandı. Artık giriş yapabilirsiniz." });
+    }
+
     /// <summary>Kullanıcı girişi — JWT access token + Refresh Token döner.</summary>
     [HttpPost("login")]
     [AllowAnonymous]

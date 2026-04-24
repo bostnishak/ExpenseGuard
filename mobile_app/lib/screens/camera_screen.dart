@@ -226,7 +226,7 @@ class _CameraScreenState extends State<CameraScreen> {
                     children: [
                       Icon(Icons.shield, color: riskColor, size: 20),
                       const SizedBox(width: 8),
-                      Text('Fraud Risk Skoru', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                      const Text('Fraud Risk Skoru', style: TextStyle(color: Colors.white70, fontSize: 14)),
                     ],
                   ),
                   Row(

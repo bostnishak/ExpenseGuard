@@ -8,7 +8,8 @@ public record LoginRequest(string Email, string Password);
 public record LoginResponse(string Token, string RefreshToken, long RefreshTokenExpiresIn, UserDto User);
 public record RefreshTokenRequest(string RefreshToken);
 public record UserDto(Guid Id, string FullName, string Email, string Role, Guid? DepartmentId);
-public record RegisterRequest(string Email, string Password, string FirstName, string LastName);
+public record RegisterRequest(string Email, string Password, string FirstName, string LastName, string CompanyName);
+public record VerifyEmailRequest(string Token);
 
 // RECEIPTS
 public record CreateReceiptRequest(

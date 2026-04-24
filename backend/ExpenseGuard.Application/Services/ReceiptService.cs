@@ -14,6 +14,8 @@ public class ReceiptService
     private readonly IMessagePublisher  _publisher;
     private readonly IEncryptionService _encryption;
     private readonly IStorageService    _storage;
+    private readonly IEmailService      _email;
+    private readonly IUserRepository    _users;
 
     private const string AI_QUEUE = "receipt.analyze";
 
@@ -23,7 +25,9 @@ public class ReceiptService
         ICacheService      cache,
         IMessagePublisher  publisher,
         IEncryptionService encryption,
-        IStorageService    storage)
+        IStorageService    storage,
+        IEmailService      email,
+        IUserRepository    users)
     {
         _receipts   = receipts;
         _budgets    = budgets;
@@ -31,6 +35,8 @@ public class ReceiptService
         _publisher  = publisher;
         _encryption = encryption;
         _storage    = storage;
+        _email      = email;
+        _users      = users;
     }
 
     // ── Fiş Oluştur ─────────────────────────────────────────
@@ -130,8 +136,33 @@ public class ReceiptService
             _        => RiskLevel.Pending,
         };
 
-        var reasonsJson = JsonSerializer.Serialize(callback.RulesChecked);
-        receipt.SetFraudResult(callback.FraudScore, risk, reasonsJson);
+        var reasons = new List<string>(callback.RulesChecked);
+        int finalScore = callback.FraudScore;
+
+        // Mükerrer Fiş Kontrolü (Duplicate Receipt)
+        if (!string.IsNullOrEmpty(receipt.VendorName) && receipt.Amount > 0)
+        {
+            bool isDuplicate = await _receipts.IsDuplicateAsync(
+                receipt.TenantId, receipt.VendorName, receipt.Amount, receipt.ReceiptDate, receipt.Id, ct);
+
+            if (isDuplicate)
+            {
+                reasons.Add("DuplicateReceiptDetected");
+                finalScore += 50;
+                risk = RiskLevel.High;
+                
+                // Admin'e bildirim at (opsiyonel / async)
+                var adminUser = await _users.GetByIdAsync(receipt.SubmittedBy, tenantId, ct); // Admin for tenant is better, but we'll email the submitter or an admin if we had GetAdmins. For now, email the submitter warning them.
+                if (adminUser != null)
+                {
+                    string body = $"Merhaba {adminUser.FirstName},<br><br>{receipt.VendorName} firmasından alınan {receipt.Amount} {receipt.Currency} tutarındaki fiş mükerrer olarak tespit edilmiştir. Lütfen sistemi kontrol edin.";
+                    await _email.SendEmailAsync(adminUser.Email, "Yüksek Riskli (Mükerrer) Fiş Tespit Edildi", body, ct);
+                }
+            }
+        }
+
+        var reasonsJson = JsonSerializer.Serialize(reasons);
+        receipt.SetFraudResult(finalScore, risk, reasonsJson);
 
         await _receipts.UpdateAsync(receipt, ct);
     }
@@ -152,6 +183,15 @@ public class ReceiptService
 
         receipt.Approve(approverId);
         await _receipts.UpdateAsync(receipt, ct);
+
+        // Kullanıcıya e-posta gönder
+        var submitter = await _users.GetByIdAsync(receipt.SubmittedBy, tenantId, ct);
+        if (submitter != null)
+        {
+            string body = $"Merhaba {submitter.FirstName},<br><br>{receipt.VendorName} firmasından {receipt.ReceiptDate:yyyy-MM-dd} tarihinde aldığınız {receipt.Amount} {receipt.Currency} tutarındaki gider fişi onaylanmıştır.<br><br>ExpenseGuard Ekibi";
+            await _email.SendEmailAsync(submitter.Email, "Fişiniz Onaylandı", body, ct);
+        }
+
         return ToResponse(receipt, "");
     }
 
@@ -170,6 +210,15 @@ public class ReceiptService
 
         receipt.Reject(approverId, reason);
         await _receipts.UpdateAsync(receipt, ct);
+
+        // Kullanıcıya e-posta gönder
+        var submitter = await _users.GetByIdAsync(receipt.SubmittedBy, tenantId, ct);
+        if (submitter != null)
+        {
+            string body = $"Merhaba {submitter.FirstName},<br><br>{receipt.VendorName} firmasından {receipt.ReceiptDate:yyyy-MM-dd} tarihinde aldığınız {receipt.Amount} {receipt.Currency} tutarındaki gider fişi aşağıdaki sebeple reddedilmiştir:<br><br><em>{reason}</em><br><br>Lütfen fişinizi düzeltip tekrar yükleyin.<br><br>ExpenseGuard Ekibi";
+            await _email.SendEmailAsync(submitter.Email, "Fişiniz Reddedildi", body, ct);
+        }
+
         return ToResponse(receipt, "");
     }
 

@@ -113,19 +113,7 @@
               <input type="text" id="regCompany" placeholder="Şirketinizin adı" required />
             </div>
           </div>
-          <div class="form-group">
-            <label for="regRole">Hesap Tipi</label>
-            <div class="input-wrap select-wrap">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.5"/></svg>
-              <select id="regRole" required>
-                <option value="">Rol Seçiniz</option>
-                <option value="admin">Sistem Admini</option>
-                <option value="manager">Departman Yöneticisi</option>
-                <option value="employee">Çalışan</option>
-                <option value="finance">Finans & Denetim Uzmanı</option>
-              </select>
-            </div>
-          </div>
+          <!-- Role selection removed for self-service registration -->
           <div class="form-row">
             <div class="form-group">
               <label for="regPassword">Şifre</label>
@@ -284,6 +272,7 @@
     </div>
   </div>
 
+  <script src="../js/api_client.js"></script>
   <script src="../js/login.js"></script>
 </body>
 </html>

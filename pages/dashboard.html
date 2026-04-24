@@ -25,7 +25,8 @@
   })();
 </script>
 
-<!-- ══ DASHBOARD SHELL ═════════════════════════════════════════ -->
+<!-- ══ DASHBOARD SHELL ══════════════════════════════════════════════════════ -->
+<div id="sidebarOverlay" class="sidebar-overlay"></div>
 <div id="dashApp" class="dash-app">
 
   <!-- Sidebar -->
@@ -330,10 +331,22 @@
           <div class="ocr-result" id="ocrResult" style="display:none">
             <h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="vertical-align:middle;margin-right:6px"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/></svg>AI Tarama Sonucu</h4>
             <div class="ocr-fields">
-              <div class="ocr-field"><label>Satıcı</label><input type="text" id="ocrVendor" value="" /></div>
-              <div class="ocr-field"><label>Tarih</label><input type="date" id="ocrDate" /></div>
-              <div class="ocr-field"><label>Tutar (₺)</label><input type="number" id="ocrAmount" step="0.01" /></div>
-              <div class="ocr-field"><label>KDV (₺)</label><input type="number" id="ocrTax" step="0.01" /></div>
+              <div class="ocr-field"><label>Satıcı</label><input type="text" id="ocrVendor" readonly /></div>
+              <div class="ocr-field"><label>Tarih</label><input type="date" id="ocrDate" readonly /></div>
+              <div class="ocr-field"><label>Tutar (₺)</label><input type="number" id="ocrAmount" step="0.01" readonly /></div>
+              <div class="ocr-field"><label>KDV (₺)</label><input type="number" id="ocrTax" step="0.01" readonly /></div>
+              <div class="ocr-field" style="grid-column: 1 / -1">
+                <label>Kategori <span style="color:var(--amber);font-size:0.75rem;font-weight:500">✓ AI tarafından belirlendi — değiştirebilirsiniz</span></label>
+                <select id="ocrCategory">
+                  <option value="food">Yemek</option>
+                  <option value="transport">Ulaşım</option>
+                  <option value="fuel">Yakıt</option>
+                  <option value="accommodation">Konaklama</option>
+                  <option value="office">Ofis Malzemesi</option>
+                  <option value="entertainment">Eğlence</option>
+                  <option value="other">Diğer</option>
+                </select>
+              </div>
             </div>
             <button class="btn-primary" id="submitOcrReceipt">Fişi Gönder</button>
           </div>
@@ -438,6 +451,7 @@
 <!-- Toast Notification -->
 <div id="toast" class="toast" style="display:none"></div>
 
+<script src="../js/api_client.js"></script>
 <script src="../js/dashboard.js"></script>
 </body>
 </html>

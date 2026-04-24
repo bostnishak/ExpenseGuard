@@ -298,10 +298,13 @@ body::before {
   backdrop-filter: blur(16px);
 }
 .sidebar-toggle {
-  display: none; background: transparent; border: none;
-  color: var(--text2); cursor: pointer; padding: .4rem; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--glass); border: 1px solid var(--border);
+  color: var(--text2); cursor: pointer; padding: .4rem .5rem;
+  border-radius: 8px; transition: all .18s; flex-shrink: 0;
 }
-.sidebar-toggle svg { width: 22px; height: 22px; }
+.sidebar-toggle:hover { color: var(--gold); border-color: var(--border2); background: var(--glass2); }
+.sidebar-toggle svg { width: 20px; height: 20px; }
 .page-title { font-size: 1.15rem; font-weight: 800; flex: 1; font-family: 'Manrope', sans-serif; letter-spacing: -0.02em; }
 .topbar-actions { display: flex; align-items: center; gap: .85rem; }
 .api-status {
@@ -691,12 +694,19 @@ body::before {
 @keyframes spin    { to{transform:rotate(360deg);} }
 @keyframes pulse   { 0%,100%{opacity:1;} 50%{opacity:0.35;} }
 
+/* ── SIDEBAR OVERLAY ───────────────────────────────────────────── */
+.sidebar-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 99;
+  background: transparent;
+}
+.sidebar-overlay.active { display: block; }
+
 /* ── RESPONSIVE ────────────────────────────────────────────────── */
 @media (max-width: 960px) {
   .sidebar { transform: translateX(-100%); }
   .sidebar.open { transform: translateX(0); }
   .main-content { margin-left: 0; }
-  .sidebar-toggle { display: block; }
   .charts-row { grid-template-columns: 1fr; }
   .chart-card.large { grid-column: 1; }
   .receipt-row { grid-template-columns: 2fr 1fr 1fr; }
@@ -842,7 +852,8 @@ body::before {
   color: var(--text2); font-weight: 600;
   margin-bottom: 0.3rem;
 }
-.ocr-field input {
+.ocr-field input,
+.ocr-field select {
   width: 100%;
   background: rgba(255,180,60,0.04);
   border: 1px solid var(--border2);
@@ -851,8 +862,35 @@ body::before {
   color: var(--text);
   font-family: inherit;
   font-size: 0.85rem;
+  transition: border-color .18s;
 }
-.ocr-field input:focus {
+/* Readonly alanlar — kilitli görünüm */
+.ocr-field input[readonly] {
+  background: rgba(255,255,255,0.02);
+  border-color: rgba(255,175,50,0.06);
+  color: var(--text2);
+  cursor: not-allowed;
+  user-select: none;
+}
+.ocr-field input[readonly]:focus {
+  outline: none;
+  border-color: rgba(255,175,50,0.06);
+  box-shadow: none;
+}
+/* Kategori select — düzenlenebilir */
+.ocr-field select {
+  cursor: pointer;
+  background: rgba(245,158,11,0.06);
+  border-color: rgba(245,158,11,0.25);
+  color: var(--text);
+}
+.ocr-field select:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(245,158,11,0.1);
+}
+.ocr-field select option { background: var(--bg3); }
+.ocr-field input:not([readonly]):focus {
   outline: none;
   border-color: var(--gold);
 }

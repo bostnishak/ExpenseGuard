@@ -129,21 +129,16 @@ async function isApiAvailable() {
 /* ── LOGIN via API ───────────────────────────────────────── */
 async function loginViaApi(email, pw) {
   const domain = email.split('@')[1] || 'acme.com.tr';
-  const res = await fetch('http://localhost/api/auth/login', {
+  
+  const data = await window.egApi.fetch('/auth/login', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
       'X-Tenant-Domain': domain
     },
-    body: JSON.stringify({ email, password: pw })
+    body: JSON.stringify({ email, password: pw }),
+    forceApi: true
   });
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || 'Giriş başarısız.');
-  }
-
-  const data = await res.json();
   const token = data.token;
 
   const roleMap = {
@@ -272,44 +267,46 @@ regForm.addEventListener('submit', async (e) => {
 
   regSubmitBtn.querySelector('span').textContent = 'Oluşturuluyor...';
   regSubmitBtn.disabled = true;
-  await sleep(1500);
 
-  const name  = document.getElementById('regFirstName').value + ' ' + document.getElementById('regLastName').value;
-  const email = document.getElementById('regEmail').value;
-  const role  = document.getElementById('regRole');
-  const roleName = role.options[role.selectedIndex].text;
-  const roleVal  = role.value;
+  const firstName = document.getElementById('regFirstName').value.trim();
+  const lastName  = document.getElementById('regLastName').value.trim();
+  const email     = document.getElementById('regEmail').value.trim();
+  const company   = document.getElementById('regCompany').value.trim() || 'Yeni Şirket';
 
-  const roleMap = {
-    admin:    { icon: 'shield', perms: ['Kullanıcı Yönetimi','Sistem Ayarları','Audit Log','Rol Atama'] },
-    manager:  { icon: 'briefcase', perms: ['Ekip Fişleri','Onay / Red','Bütçe Raporu','Departman Analiz'] },
-    employee: { icon: 'user', perms: ['Kendi Fişleri','Fiş Yükleme','Durum Takibi'] },
-    finance:  { icon: 'dollar', perms: ['Tüm Şirket Fişleri','Fraud Analiz','Finansal Raporlar','Compliance'] }
-  };
-  const info = roleMap[roleVal] || roleMap.employee;
+  try {
+    const data = await window.egApi.fetch('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: email,
+        password: pw1,
+        firstName: firstName,
+        lastName: lastName,
+        companyName: company
+      }),
+      forceApi: true
+    });
 
-  showFeedback(regFeedback, `Hoş geldiniz ${name}! Hesabınız "${roleName}" olarak oluşturuldu.`, 'success');
-  resetBtn(regSubmitBtn, 'Üyelik Oluştur');
-  await sleep(1000);
+    showFeedback(regFeedback, data.message || `Hoş geldiniz! Hesabınız oluşturuldu. Lütfen e-postanızı doğrulayın.`, 'success');
+    
+    // Bekleyen plan satın alma varsa, ödemeye yönlendir
+    if (localStorage.getItem('eg_pending_plan')) {
+      await sleep(1500);
+      window.location.href = 'index.html#pricing';
+      return;
+    }
 
-  localStorage.setItem('eg_session', JSON.stringify({
-    email, role: roleName, icon: info.icon, loginTime: new Date().toISOString(), mode: 'demo'
-  }));
-
-  // Bekleyen plan satın alma varsa, ödemeye yönlendir
-  if (localStorage.getItem('eg_pending_plan')) {
-    showFeedback(regFeedback, 'Hesabınız oluşturuldu! Ödeme sayfasına yönlendiriliyorsunuz...', 'success');
-    await sleep(800);
-    window.location.href = 'index.html#pricing';
-    return;
+    // Modal success
+    showSuccessModal(email, {
+      role: 'Sistem Admini', icon: 'shield', pw: '••••••••',
+      desc: 'Yeni şirket hesabınız başarıyla oluşturuldu.',
+      permissions: ['Kullanıcı Yönetimi','Sistem Ayarları','Audit Log','Rol Atama']
+    });
+    regForm.reset();
+  } catch (err) {
+    showFeedback(regFeedback, err.message || 'Kayıt olurken bir hata oluştu. Lütfen tekrar deneyin.', 'error');
+  } finally {
+    resetBtn(regSubmitBtn, 'Üyelik Oluştur');
   }
-
-  showSuccessModal(email, {
-    role: roleName, icon: info.icon, pw: '••••••••',
-    desc: 'Yeni hesabınız başarıyla oluşturuldu.',
-    permissions: info.perms
-  });
-  regForm.reset();
 });
 
 /* ── DEMO CARD QUICK LOGIN ───────────────────────────────── */
