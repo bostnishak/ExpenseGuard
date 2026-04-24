@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dashboard_screen.dart';
 import 'receipts_list_screen.dart';
 import 'profile_screen.dart';
-import 'camera_screen.dart';
+import 'receipt_upload_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -27,15 +27,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         index: _currentIndex,
         children: _screens,
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const CameraScreen()),
+            MaterialPageRoute(builder: (_) => const ReceiptUploadScreen()),
           );
         },
         backgroundColor: const Color(0xFFF59E0B),
         foregroundColor: Colors.black,
-        child: const Icon(Icons.camera_alt),
+        icon: const Icon(Icons.add_a_photo),
+        label: const Text('Fiş Yükle', style: TextStyle(fontWeight: FontWeight.w700)),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: BottomNavigationBar(

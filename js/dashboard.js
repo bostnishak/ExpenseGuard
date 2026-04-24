@@ -808,6 +808,22 @@ if (previewRemove) {
   });
 }
 
+// ── DEMO OCR SCENARIOS (gerçekçi Türkiye fiş verileri) ─────────
+const DEMO_OCR_SCENARIOS = [
+  { vendorName: 'Migros Ataşehir AVM',    amount: 347.85, taxAmount: 62.61,  category: 'food',          dayOffset: 0 },
+  { vendorName: 'Shell Kadıköy İstasyonu', amount: 1120.00, taxAmount: 201.60, category: 'fuel',         dayOffset: -1 },
+  { vendorName: 'Hilton Istanbul Bomonti', amount: 3750.00, taxAmount: 675.00, category: 'accommodation', dayOffset: -2 },
+  { vendorName: 'Uber Türkiye',            amount: 214.50, taxAmount: 38.61,  category: 'transport',     dayOffset: 0 },
+  { vendorName: 'Starbucks Maslak',        amount: 189.00, taxAmount: 34.02,  category: 'food',          dayOffset: 0 },
+  { vendorName: 'Teknosa Levent Park',     amount: 2890.00, taxAmount: 520.20, category: 'office',       dayOffset: -1 },
+  { vendorName: 'Pegasus Havayolları',     amount: 1450.00, taxAmount: 261.00, category: 'transport',    dayOffset: -3 },
+  { vendorName: 'BiTaksi',                 amount: 78.50, taxAmount: 14.13,   category: 'transport',     dayOffset: 0 },
+  { vendorName: 'Carrefour Maltepe',       amount: 523.40, taxAmount: 94.21,  category: 'food',          dayOffset: 0 },
+  { vendorName: 'BP Petrol Ümraniye',      amount: 980.00, taxAmount: 176.40, category: 'fuel',          dayOffset: -1 },
+  { vendorName: 'Marriott Şişli',          amount: 4200.00, taxAmount: 756.00, category: 'accommodation', dayOffset: -2 },
+  { vendorName: 'Yemeksepeti Kurumsal',    amount: 268.90, taxAmount: 48.40,  category: 'food',          dayOffset: 0 },
+];
+
 async function handleFileUpload(file) {
   if (file.size > 10 * 1024 * 1024) {
     showToast('Dosya 10MB\'den büyük olamaz', 'error');
@@ -824,6 +840,39 @@ async function handleFileUpload(file) {
   reader.onload = (e) => { previewImg.src = e.target.result; };
   reader.readAsDataURL(file);
 
+  // ── DEMO MOD: Gerçekçi AI/OCR simülasyonu ─────────────────
+  if (isDemo()) {
+    // Simulate AI processing stages
+    const statusEl = ocrStatus.querySelector('span');
+    const stages = [
+      'Görüntü ön işleniyor...',
+      'OCR metin çıkarılıyor...',
+      'AI fiş alanlarını analiz ediyor...',
+      'Fraud risk skoru hesaplanıyor...',
+    ];
+
+    for (let i = 0; i < stages.length; i++) {
+      if (statusEl) statusEl.textContent = stages[i];
+      await new Promise(r => setTimeout(r, 600 + Math.random() * 400));
+    }
+
+    // Pick a random demo scenario
+    const scenario = DEMO_OCR_SCENARIOS[Math.floor(Math.random() * DEMO_OCR_SCENARIOS.length)];
+    const d = new Date();
+    d.setDate(d.getDate() + scenario.dayOffset);
+
+    document.getElementById('ocrVendor').value = scenario.vendorName;
+    document.getElementById('ocrDate').value   = d.toISOString().split('T')[0];
+    document.getElementById('ocrAmount').value = scenario.amount;
+    document.getElementById('ocrTax').value    = scenario.taxAmount;
+
+    ocrStatus.style.display = 'none';
+    ocrResult.style.display = 'block';
+    showToast('AI analizi tamamlandı — fiş bilgileri otomatik çıkarıldı!');
+    return;
+  }
+
+  // ── GERÇEK API MODU ───────────────────────────────────────
   try {
     const formData = new FormData();
     formData.append('file', file);
