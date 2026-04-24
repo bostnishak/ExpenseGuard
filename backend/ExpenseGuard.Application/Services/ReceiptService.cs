@@ -16,6 +16,10 @@ public class ReceiptService
     private readonly IStorageService    _storage;
     private readonly IEmailService      _email;
     private readonly IUserRepository    _users;
+    private readonly ITaxVerificationService _taxService;
+    private readonly IExchangeRateService _exchangeRateService;
+    private readonly IERPIntegrationService _erpIntegration;
+    private readonly INotificationService _notificationService;
 
     private const string AI_QUEUE = "receipt.analyze";
 
@@ -27,7 +31,11 @@ public class ReceiptService
         IEncryptionService encryption,
         IStorageService    storage,
         IEmailService      email,
-        IUserRepository    users)
+        IUserRepository    users,
+        ITaxVerificationService taxService,
+        IExchangeRateService exchangeRateService,
+        IERPIntegrationService erpIntegration,
+        INotificationService notificationService)
     {
         _receipts   = receipts;
         _budgets    = budgets;
@@ -37,6 +45,10 @@ public class ReceiptService
         _storage    = storage;
         _email      = email;
         _users      = users;
+        _taxService = taxService;
+        _exchangeRateService = exchangeRateService;
+        _erpIntegration = erpIntegration;
+        _notificationService = notificationService;
     }
 
     // ── Fiş Oluştur ─────────────────────────────────────────
@@ -69,8 +81,13 @@ public class ReceiptService
             category:     req.Category ?? "other",
             vendorName:   req.VendorName,
             taxAmount:    req.TaxAmount,
-            taxRate:      req.TaxRate
+            taxRate:      req.TaxRate,
+            currency:     req.Currency ?? "TRY"
         );
+
+        // Faz 3: Multi-Currency Exchange Rate Fetch
+        var rate = await _exchangeRateService.GetExchangeRateAsync(receipt.Currency, ct);
+        receipt.SetCurrencyData(rate, receipt.Amount * rate);
 
         // 🚀 AWS S3'e Yükleme (Eğer Base64 görsel varsa)
         string? uploadedUrl = null;
@@ -114,6 +131,19 @@ public class ReceiptService
         var year = req.ReceiptDate?.Year ?? DateTime.UtcNow.Year;
         var month = req.ReceiptDate?.Month ?? DateTime.UtcNow.Month;
         await _cache.RemoveAsync($"budget:{departmentId}:{year}:{month}", ct);
+
+        // Faz 3: Yöneticilere mobil onay bildirimi (Push Notification)
+        // Şimdilik işlemi yapan kullanıcının departman yöneticisi veya tenant admin'i bulup ona atılmalı
+        // Biz simülasyon amaçlı admin user bulup yolluyoruz (Demo verisi)
+        var adminUser = await _users.GetByIdAsync(userId, tenantId, ct); // Kendisine atıyoruz test için
+        if (adminUser != null)
+        {
+            await _notificationService.SendPushNotificationAsync(
+                userId, tenantId, 
+                "Yeni Fiş Onaya Düştü", 
+                $"{amount} {receipt.Currency} tutarında {receipt.VendorName ?? "yeni"} fiş incelenmeyi bekliyor.", 
+                ct);
+        }
 
         return ToResponse(receipt, "");
     }
@@ -161,6 +191,49 @@ public class ReceiptService
             }
         }
 
+        // ── Faz 2: Gelişmiş Fraud Kontrolleri ───────────────────
+        
+        // 1. e-Devlet VKN Doğrulaması (Mock)
+        var mockVkn = "1234567890"; // Gerçekte OCR'dan (receipt.TaxNumber) alınmalı
+        var taxResult = await _taxService.VerifyTaxNumberAsync(mockVkn, ct);
+        if (!taxResult.IsValid)
+        {
+            reasons.Add($"TaxVerificationFailed: {taxResult.ErrorMessage}");
+            finalScore += 40;
+            risk = RiskLevel.High;
+        }
+
+        // 2. Round-Number Kontrolü
+        if (receipt.Amount > 0 && receipt.Amount % 100 == 0)
+        {
+            reasons.Add("RoundNumberDetected");
+            finalScore += 20;
+            if (risk == RiskLevel.Low) risk = RiskLevel.Medium;
+        }
+
+        // 3. Split Transaction & 4. Behavioral Baseline
+        var userRecentReceipts = await _receipts.GetByUserAsync(receipt.SubmittedBy, tenantId, 1, 50, ct);
+        
+        var splitCount = userRecentReceipts.Count(r => 
+            r.Id != receipt.Id && 
+            r.VendorName == receipt.VendorName && 
+            r.ReceiptDate == receipt.ReceiptDate);
+            
+        if (splitCount > 0)
+        {
+            reasons.Add("SplitTransactionDetected");
+            finalScore += 30;
+            risk = RiskLevel.High;
+        }
+
+        var avgAmount = userRecentReceipts.Where(r => r.Id != receipt.Id).Average(r => (decimal?)r.Amount) ?? 0;
+        if (avgAmount > 0 && receipt.Amount > avgAmount * 3)
+        {
+            reasons.Add("BehavioralAnomaly");
+            finalScore += 25;
+            if (risk != RiskLevel.High) risk = RiskLevel.Medium;
+        }
+
         var reasonsJson = JsonSerializer.Serialize(reasons);
         receipt.SetFraudResult(finalScore, risk, reasonsJson);
 
@@ -190,6 +263,16 @@ public class ReceiptService
         {
             string body = $"Merhaba {submitter.FirstName},<br><br>{receipt.VendorName} firmasından {receipt.ReceiptDate:yyyy-MM-dd} tarihinde aldığınız {receipt.Amount} {receipt.Currency} tutarındaki gider fişi onaylanmıştır.<br><br>ExpenseGuard Ekibi";
             await _email.SendEmailAsync(submitter.Email, "Fişiniz Onaylandı", body, ct);
+        }
+
+        // ── Faz 3: ERP Senkronizasyonu (Logo / SAP vb.) ──
+        // Mock tenant oluşturarak yolluyoruz. Normalde db'den alınır.
+        var tenant = new Tenant { ErpProvider = "Logo", ErpApiKey = "dummy-key" }; 
+        var syncResult = await _erpIntegration.SyncReceiptAsync(receipt, tenant, ct);
+        if (syncResult)
+        {
+            receipt.MarkErpSynced();
+            await _receipts.UpdateAsync(receipt, ct);
         }
 
         return ToResponse(receipt, "");
@@ -292,6 +375,47 @@ public class ReceiptService
         }
 
         return sb.ToString();
+    }
+
+    public async Task<byte[]> ExportApprovedReceiptsToExcelAsync(
+        Guid tenantId, Guid departmentId, CancellationToken ct = default)
+    {
+        var items = await _receipts.GetByDepartmentAsync(departmentId, tenantId, 1, 5000, ct);
+        var exportItems = items.Where(r => r.Status == ReceiptStatus.Approved).ToList();
+
+        using var workbook = new ClosedXML.Excel.XLWorkbook();
+        var worksheet = workbook.Worksheets.Add("Onayli_Fisler");
+
+        worksheet.Cell(1, 1).Value = "Fiş No";
+        worksheet.Cell(1, 2).Value = "Tarih";
+        worksheet.Cell(1, 3).Value = "Satıcı";
+        worksheet.Cell(1, 4).Value = "Kategori";
+        worksheet.Cell(1, 5).Value = "Tutar (TL)";
+        worksheet.Cell(1, 6).Value = "KDV Tutarı";
+        worksheet.Cell(1, 7).Value = "Risk Seviyesi";
+
+        var headerRow = worksheet.Row(1);
+        headerRow.Style.Font.Bold = true;
+        headerRow.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightGray;
+
+        int row = 2;
+        foreach (var r in exportItems)
+        {
+            worksheet.Cell(row, 1).Value = r.Id.ToString();
+            worksheet.Cell(row, 2).Value = r.ReceiptDate.ToString("yyyy-MM-dd");
+            worksheet.Cell(row, 3).Value = r.VendorName ?? "Bilinmiyor";
+            worksheet.Cell(row, 4).Value = r.Category ?? "";
+            worksheet.Cell(row, 5).Value = r.Amount;
+            worksheet.Cell(row, 6).Value = r.TaxAmount ?? 0;
+            worksheet.Cell(row, 7).Value = r.RiskLevel.ToString();
+            row++;
+        }
+
+        worksheet.Columns().AdjustToContents();
+
+        using var stream = new System.IO.MemoryStream();
+        workbook.SaveAs(stream);
+        return stream.ToArray();
     }
 
     // ── Bütçe Durumu (Redis cache'li) ────────────────────────

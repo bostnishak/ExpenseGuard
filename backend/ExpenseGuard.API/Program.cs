@@ -69,6 +69,14 @@ builder.Services.AddScoped<BillingService>();
 builder.Services.AddScoped<AuthService>();       // AppDbContext bağımlılığını DI karşılar
 builder.Services.AddScoped<ReceiptService>();
 builder.Services.AddScoped<AnalyticsService>();
+builder.Services.AddHttpClient<ITaxVerificationService, TaxVerificationService>();
+
+// ── Faz 3 (Büyüme) DI Kayıtları ────────────────────────────
+builder.Services.AddHttpClient<IExchangeRateService, ExchangeRateService>();
+builder.Services.AddScoped<IERPIntegrationService, LogoIntegrationService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IMLExportService, MLExportService>();
+builder.Services.AddScoped<IDataAnonymizationService, DataAnonymizationService>();
 
 // ── JWT AUTHENTICATION ─────────────────────────────────────
 var jwtSecret = cfg["Jwt:Secret"] ?? throw new Exception("JWT Secret eksik!");

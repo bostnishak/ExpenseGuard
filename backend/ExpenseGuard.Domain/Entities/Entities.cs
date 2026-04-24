@@ -43,6 +43,16 @@ public class Tenant
     public string? SubscriptionId       { get; set; }
     public string  SubscriptionStatus   { get; set; } = "trialing"; // trialing, active, past_due, canceled
     public DateTimeOffset? TrialEndsAt  { get; set; }
+
+    // ── White-Label (Faz 2) ───────────────────────────────────
+    public string? ThemeColor           { get; set; }
+    public string? LogoUrl              { get; set; }
+    public string? CustomDomain         { get; set; }
+
+    // ── ERP Integration (Faz 3) ───────────────────────────────
+    public string? ErpProvider          { get; set; } // Logo, Netsis, SAP
+    public string? ErpApiKey            { get; set; }
+    public string? ErpEndpoint          { get; set; }
 }
 
 public class Department
@@ -102,6 +112,26 @@ public class RefreshToken
     public bool IsExpired  => DateTimeOffset.UtcNow >= ExpiresAt;
     public bool IsActive   => !IsRevoked && !IsExpired;
 
-    // Navigation
     public User? User { get; set; }
+}
+
+// ── Faz 3: Mobil Onay / Bildirimler ───────────────────────────
+public class Notification
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid UserId { get; set; }
+    public Guid TenantId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+    public bool IsRead { get; set; } = false;
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+}
+
+public class UserDeviceToken
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid UserId { get; set; }
+    public string DeviceToken { get; set; } = string.Empty; // FCM Token
+    public string DeviceType { get; set; } = "ios"; // ios, android, web
+    public DateTimeOffset LastUsedAt { get; set; } = DateTimeOffset.UtcNow;
 }

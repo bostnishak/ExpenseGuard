@@ -26,12 +26,6 @@ class ApiClient {
     // Wrapper: API'ye istek atar, 401 alırsa yenilemeyi dener
     async fetch(endpoint, options = {}) {
         let session = this.getSession();
-        
-        // Demo mode check
-        if (session && session.mode === 'demo' && !options.forceApi) {
-            console.warn(`[Demo Mode] Intercepted call to ${endpoint}`);
-            return this.mockResponse(endpoint, options);
-        }
 
         const headers = {
             'Content-Type': 'application/json',
@@ -91,31 +85,6 @@ class ApiClient {
     logout() {
         localStorage.removeItem('eg_session');
         window.location.href = 'login.html';
-    }
-
-    // --- MOCK RESPONSES FOR DEMO MODE ---
-    mockResponse(endpoint, options) {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                if (endpoint.includes('/dashboard/summary')) {
-                    resolve({
-                        TotalReceipts: 42,
-                        ApprovedReceipts: 35,
-                        RejectedReceipts: 3,
-                        PendingReceipts: 4,
-                        TotalAmount: 12450.50
-                    });
-                } else if (endpoint.includes('/dashboard/recent-activity')) {
-                    resolve([
-                        { Id: 1, VendorName: "THY", Amount: 3500, Status: "Approved", SubmittedAt: new Date().toISOString(), RiskLevel: "Low" },
-                        { Id: 2, VendorName: "Starbucks", Amount: 120, Status: "Pending", SubmittedAt: new Date().toISOString(), RiskLevel: "Low" },
-                        { Id: 3, VendorName: "Shell", Amount: 850, Status: "Rejected", SubmittedAt: new Date().toISOString(), RiskLevel: "High" }
-                    ]);
-                } else {
-                    resolve({ message: "Mock data" });
-                }
-            }, 500);
-        });
     }
 }
 

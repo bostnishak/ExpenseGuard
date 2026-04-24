@@ -22,37 +22,12 @@ function escapeHTML(str) {
     .replace(/'/g, '&#39;');
 }
 
-// ── DEMO DATA (API offline fallback) ─────────────────────────
-const DEMO_RECEIPTS = [
-  { id: 'demo-r1', vendorName: 'Migros Ataşehir', category: 'food', amount: 485.50, receiptDate: '2025-04-15', submittedAt: '2025-04-15T14:30:00Z', status: 'Approved', riskLevel: 'Low', fraudScore: 12, fraudReasons: JSON.stringify([{rule:'KDV Kontrolü',passed:true,message:'KDV tutarı matematiksel olarak doğru'},{rule:'Mesai Saati',passed:true,message:'Fiş mesai saatleri içinde kesilmiş'},{rule:'Sektör Ortalaması',passed:true,message:'Tutar sektör ortalaması dahilinde'}]) },
-  { id: 'demo-r2', vendorName: 'Shell Petrol - Kadıköy', category: 'fuel', amount: 1250.00, receiptDate: '2025-04-14', submittedAt: '2025-04-14T09:15:00Z', status: 'Approved', riskLevel: 'Low', fraudScore: 8, fraudReasons: '[]' },
-  { id: 'demo-r3', vendorName: 'Hilton Istanbul Bosphorus', category: 'accommodation', amount: 4800.00, receiptDate: '2025-04-13', submittedAt: '2025-04-13T18:00:00Z', status: 'Flagged', riskLevel: 'High', fraudScore: 78, fraudReasons: JSON.stringify([{rule:'Hafta Sonu Kontrolü',passed:false,message:'Fiş Pazar günü kesilmiş — mesai dışı'},{rule:'Saat Kontrolü',passed:false,message:'Saat 02:47 — şüpheli zaman dilimi'},{rule:'Sektör Ortalaması',passed:false,message:'Konaklama tutarı sektör ortalamasının 340% üzerinde'},{rule:'KDV Kontrolü',passed:true,message:'KDV hesaplaması matematiksel doğru'},{rule:'Lokasyon',passed:false,message:'Lokasyon şirket operasyon bölgesi dışında'}]) },
-  { id: 'demo-r4', vendorName: 'Uber Türkiye', category: 'transport', amount: 185.75, receiptDate: '2025-04-12', submittedAt: '2025-04-12T22:45:00Z', status: 'Approved', riskLevel: 'Low', fraudScore: 22, fraudReasons: '[]' },
-  { id: 'demo-r5', vendorName: 'Nusr-Et Steakhouse', category: 'food', amount: 8750.00, receiptDate: '2025-04-11', submittedAt: '2025-04-11T23:30:00Z', status: 'Rejected', riskLevel: 'High', fraudScore: 92, fraudReasons: JSON.stringify([{rule:'Tutar Kontrolü',passed:false,message:'Yemek tutarı ₺8.750 — sektör ortalamasının 580% üzerinde'},{rule:'Saat Kontrolü',passed:false,message:'Saat 23:30 — mesai dışı geç saatte'},{rule:'KDV Kontrolü',passed:false,message:'KDV tutarı matematiksel olarak tutarsız'},{rule:'Tekrar Kontrolü',passed:false,message:'Aynı satıcıda 7 gün içinde 3. fiş'}]) },
-  { id: 'demo-r6', vendorName: 'Teknosa Levent', category: 'office', amount: 3200.00, receiptDate: '2025-04-10', submittedAt: '2025-04-10T11:20:00Z', status: 'Approved', riskLevel: 'Medium', fraudScore: 35, fraudReasons: JSON.stringify([{rule:'Tutar Kontrolü',passed:false,message:'Ofis malzemesi kategorisinde yüksek tutar'},{rule:'KDV Kontrolü',passed:true,message:'KDV doğru'},{rule:'Mesai Saati',passed:true,message:'Mesai saatleri içinde'}]) },
-  { id: 'demo-r7', vendorName: 'BiTaksi', category: 'transport', amount: 92.50, receiptDate: '2025-04-09', submittedAt: '2025-04-09T08:30:00Z', status: 'Approved', riskLevel: 'Low', fraudScore: 5, fraudReasons: '[]' },
-  { id: 'demo-r8', vendorName: 'Starbucks Maslak', category: 'food', amount: 145.00, receiptDate: '2025-04-08', submittedAt: '2025-04-08T10:00:00Z', status: 'Pending', riskLevel: 'Low', fraudScore: null, fraudReasons: null },
-  { id: 'demo-r9', vendorName: 'THY - Ankara Uçuş', category: 'transport', amount: 2150.00, receiptDate: '2025-04-07', submittedAt: '2025-04-07T06:15:00Z', status: 'Approved', riskLevel: 'Low', fraudScore: 15, fraudReasons: '[]' },
-  { id: 'demo-r10', vendorName: 'Gece Kulübü XYZ', category: 'entertainment', amount: 6500.00, receiptDate: '2025-04-06', submittedAt: '2025-04-06T03:00:00Z', status: 'Flagged', riskLevel: 'High', fraudScore: 85, fraudReasons: JSON.stringify([{rule:'Kategori Kontrolü',passed:false,message:'Eğlence kategorisi — şirket politikası dışı'},{rule:'Saat Kontrolü',passed:false,message:'Saat 03:00 — gece saatlerinde harcama'},{rule:'Hafta Sonu',passed:false,message:'Cumartesi günü — mesai dışı'},{rule:'Tutar',passed:false,message:'Eğlence ortalamasının 420% üzerinde'}]) },
-  { id: 'demo-r11', vendorName: 'Pegasus Airlines', category: 'transport', amount: 890.00, receiptDate: '2025-04-05', submittedAt: '2025-04-05T07:00:00Z', status: 'Approved', riskLevel: 'Low', fraudScore: 10, fraudReasons: '[]' },
-  { id: 'demo-r12', vendorName: 'Marriott İzmir', category: 'accommodation', amount: 1800.00, receiptDate: '2025-04-04', submittedAt: '2025-04-04T16:00:00Z', status: 'AiProcessing', riskLevel: 'Pending', fraudScore: null, fraudReasons: null }
-];
-
 // ── API HELPERS ───────────────────────────────────────────────
 function isDemo() {
-  const raw = localStorage.getItem('eg_session');
-  if (!raw) return true;
-  try {
-    const s = JSON.parse(raw);
-    return s.mode === 'demo' || !s.token;
-  } catch { return true; }
+  return false; // Artık her zaman gerçek API kullanılacak (Faz 4)
 }
 
 async function apiFetch(path, opts = {}) {
-  // Demo modda API çağırmadan yerel veri döndür
-  if (isDemo()) {
-    return demoFallback(path, opts);
-  }
   opts.headers = {
     'X-Tenant-Domain': TENANT_DOMAIN,
     ...(opts.headers || {})
@@ -60,78 +35,7 @@ async function apiFetch(path, opts = {}) {
   return window.egApi.fetch(path.replace('/api', ''), opts);
 }
 
-// ── DEMO FALLBACK DATA ────────────────────────────────────────
-function demoFallback(path, opts) {
-  // GET receipts
-  if (path.includes('/api/receipts/my')) {
-    return Promise.resolve({ items: DEMO_RECEIPTS });
-  }
-  // High risk
-  if (path.includes('/api/admin/receipts/high-risk')) {
-    const minScore = parseInt(new URL('http://x' + path.replace(/.*\?/, '?')).searchParams.get('minScore') || '60');
-    return Promise.resolve(DEMO_RECEIPTS.filter(r => (r.fraudScore || 0) >= minScore));
-  }
-  // Budget query
-  if (path.includes('/api/admin/budgets/')) {
-    return Promise.resolve({
-      departmentName: 'Pazarlama Departmanı (Demo)',
-      limitAmount: 50000, spentAmount: 32500, remainingAmount: 17500,
-      usagePercent: 65.0, isExceeded: false
-    });
-  }
-  // Budget set
-  if (path.includes('/api/admin/budgets') && opts.method === 'PUT') {
-    return Promise.resolve({ success: true });
-  }
-  // Create receipt
-  if (path === '/api/receipts' && opts.method === 'POST') {
-    const body = JSON.parse(opts.body || '{}');
-    const newReceipt = {
-      id: 'demo-new-' + Date.now(),
-      vendorName: body.vendorName || 'Manuel Giriş',
-      category: body.category || 'other',
-      amount: body.amount || 0,
-      receiptDate: body.receiptDate || new Date().toISOString().split('T')[0],
-      submittedAt: new Date().toISOString(),
-      status: 'AiProcessing',
-      riskLevel: 'Pending',
-      fraudScore: null,
-      fraudReasons: null,
-      method: body.method || 'Manuel'
-    };
-    DEMO_RECEIPTS.unshift(newReceipt);
-    // Simulate AI analysis after 3 seconds
-    setTimeout(() => {
-      newReceipt.status = 'Approved';
-      newReceipt.riskLevel = 'Low';
-      newReceipt.fraudScore = Math.floor(Math.random() * 30) + 5;
-      newReceipt.fraudReasons = JSON.stringify([{rule:'Demo Analiz',passed:true,message:'Demo modda otomatik onaylandı'}]);
-    }, 3000);
-    return Promise.resolve(newReceipt);
-  }
-  // Approve / Reject
-  if (path.includes('/approve') || path.includes('/reject')) {
-    const id = path.split('/').find(s => s.startsWith('demo-'));
-    const receipt = DEMO_RECEIPTS.find(r => r.id === id);
-    if (receipt) {
-      receipt.status = path.includes('/approve') ? 'Approved' : 'Rejected';
-    }
-    return Promise.resolve({ success: true });
-  }
-  // CSV export
-  if (path.includes('/export-csv')) {
-    return Promise.resolve({ message: 'Demo modda CSV export simüle edildi.' });
-  }
-  // OCR parse
-  if (path.includes('/ocr-parse')) {
-    return Promise.resolve({
-      vendorName: 'Demo Satıcı', receiptDate: new Date().toISOString().split('T')[0],
-      amount: 350.00, taxAmount: 63.00
-    });
-  }
-  // Default
-  return Promise.resolve([]);
-}
+
 
 // ── TOAST ──────────────────────────────────────────────────────
 function showToast(msg, type = 'success') {
@@ -204,6 +108,21 @@ sidebarOverlay.addEventListener('click', closeSidebar);
     document.getElementById('userName').textContent = session.role || 'Kullanıcı';
     document.getElementById('userRole').textContent = session.email || '';
     document.getElementById('userAvatar').textContent = (session.role?.[0] || session.email?.[0] || 'U').toUpperCase();
+
+    // ── White-Label (Faz 2) Tema & Logo Enjeksiyonu ──
+    if (session.themeColor) {
+      document.documentElement.style.setProperty('--blue-600', session.themeColor);
+      document.documentElement.style.setProperty('--blue-700', session.themeColor);
+      document.documentElement.style.setProperty('--primary', session.themeColor);
+      // Butonları vb renklendirmek için
+    }
+    
+    const brandNameEl = document.getElementById('brandName');
+    if (session.logoUrl && brandNameEl) {
+       brandNameEl.innerHTML = `<img src="${escapeHTML(session.logoUrl)}" alt="Company Logo" style="height:32px;display:inline-block">`;
+    } else if (session.companyName && brandNameEl) {
+       brandNameEl.textContent = session.companyName;
+    }
 
     // Yetki Kontrolleri (UI Görünürlüğü)
     if (session.role === 'Sistem Admini') {

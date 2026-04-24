@@ -22,6 +22,11 @@ CREATE TABLE tenants (
     subscription_status VARCHAR(50) NOT NULL DEFAULT 'trialing',
     trial_ends_at       TIMESTAMPTZ,
 
+    -- White-Label (Faz 2)
+    theme_color         VARCHAR(20),
+    logo_url            TEXT,
+    custom_domain       VARCHAR(100),
+
     created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
@@ -102,6 +107,11 @@ CREATE TABLE expense_receipts (
     amount_display      NUMERIC(15,2) NOT NULL,  -- Yalnızca görüntüleme, doğrulama için encrypted kullan
     tax_rate            NUMERIC(5,2),            -- KDV oranı (%)
 
+    -- Faz 3: Multi-Currency & ERP
+    exchange_rate       NUMERIC(15,6),           -- Kur (TCMB)
+    amount_try          NUMERIC(15,2) NOT NULL DEFAULT 0, -- TL karşılığı
+    is_erp_synced       BOOLEAN       NOT NULL DEFAULT FALSE,
+
     -- Dosya / OCR
     image_path          TEXT,                    -- Object storage path (S3/Azure Blob)
     ocr_raw_text        TEXT,                    -- OCR'dan ham metin
@@ -121,6 +131,31 @@ CREATE TABLE expense_receipts (
     submitted_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     processed_at        TIMESTAMPTZ,
     updated_at          TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+-- ============================================================
+-- TABLE: notifications (Faz 3: Mobil Bildirimler)
+-- ============================================================
+CREATE TABLE notifications (
+    id            UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id       UUID         NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    tenant_id     UUID         NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    title         VARCHAR(200) NOT NULL,
+    message       TEXT         NOT NULL,
+    is_read       BOOLEAN      NOT NULL DEFAULT FALSE,
+    created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+-- ============================================================
+-- TABLE: user_device_tokens (Faz 3: FCM / Push Notifications)
+-- ============================================================
+CREATE TABLE user_device_tokens (
+    id            UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id       UUID         NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    device_token  VARCHAR(255) NOT NULL,
+    device_type   VARCHAR(20)  NOT NULL DEFAULT 'ios',
+    last_used_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    UNIQUE(user_id, device_token)
 );
 
 -- ============================================================

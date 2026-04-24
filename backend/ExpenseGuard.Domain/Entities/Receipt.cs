@@ -22,6 +22,11 @@ public class Receipt
     public decimal? TaxAmount   { get; private set; }
     public decimal? TaxRate     { get; private set; }
     public string  Currency     { get; private set; } = "TRY";
+    
+    // ── Faz 3: Multi-Currency & ERP ─────────────────────────
+    public decimal? ExchangeRate  { get; private set; }
+    public decimal  AmountTry     { get; private set; }  // Bütçe için TL karşılığı
+    public bool     IsErpSynced   { get; private set; } = false;
 
     // OCR / AI
     public string?        ImagePath    { get; private set; }
@@ -40,7 +45,8 @@ public class Receipt
     public static Receipt Create(
         Guid tenantId, Guid departmentId, Guid submittedBy,
         DateOnly receiptDate, decimal amount, string category,
-        string? vendorName = null, decimal? taxAmount = null, decimal? taxRate = null)
+        string? vendorName = null, decimal? taxAmount = null, decimal? taxRate = null,
+        string currency = "TRY")
     {
         return new Receipt
         {
@@ -53,10 +59,25 @@ public class Receipt
             VendorName   = vendorName,
             TaxAmount    = taxAmount,
             TaxRate      = taxRate,
+            Currency     = currency,
+            AmountTry    = currency == "TRY" ? amount : 0 // Sonradan ExchangeRateService ile güncellenecek
         };
     }
 
     // ── Domain Methods ──────────────────────────────────────
+    public void SetCurrencyData(decimal exchangeRate, decimal amountTry)
+    {
+        ExchangeRate = exchangeRate;
+        AmountTry    = amountTry;
+        UpdatedAt    = DateTimeOffset.UtcNow;
+    }
+
+    public void MarkErpSynced()
+    {
+        IsErpSynced = true;
+        UpdatedAt   = DateTimeOffset.UtcNow;
+    }
+
     public void SetOcrData(string? imagePath, string? rawText)
     {
         ImagePath  = imagePath;

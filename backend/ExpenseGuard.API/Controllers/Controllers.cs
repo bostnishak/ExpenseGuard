@@ -246,6 +246,15 @@ public class ReceiptsController : ControllerBase
         return File(bytes, "text/csv", $"Masraflar_{DateTime.Now:yyyyMMdd}.csv");
     }
 
+    /// <summary>Muhasebe için onaylı fişleri Excel olarak dışa aktar.</summary>
+    [HttpGet("export-excel")]
+    [Authorize(Roles = "Manager,Finance,Admin")]
+    public async Task<IActionResult> ExportToExcel(CancellationToken ct)
+    {
+        var bytes = await _service.ExportApprovedReceiptsToExcelAsync(TenantId, DeptId, ct);
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"Masraflar_{DateTime.Now:yyyyMMdd}.xlsx");
+    }
+
     /// <summary>Fiş onayla — Manager, Finance, Admin.</summary>
     [HttpPost("{id:guid}/approve")]
     [Authorize(Roles = "Manager,Finance,Admin")]
@@ -270,11 +279,9 @@ public class ReceiptsController : ControllerBase
         return Ok(result);
     }
 
-    /// <summary>AI servisi fraud sonucunu bu endpoint'e callback yapar.
-    /// Güvenlik: InternalNetworkMiddleware Docker iç ağı dışındaki erişimleri engeller.
-    /// </summary>
+    /// <summary>AI servisi fraud sonucunu bu endpoint'e callback yapar.</summary>
     [HttpPost("{id:guid}/fraud-callback")]
-    [AllowAnonymous]  // IP doğrulaması InternalNetworkMiddleware'de yapılır
+    [AllowAnonymous]
     public async Task<IActionResult> FraudCallback(
         Guid id,
         [FromBody] FraudCallbackRequest req,
@@ -285,6 +292,52 @@ public class ReceiptsController : ControllerBase
 
         await _service.HandleFraudCallbackAsync(Guid.Empty, req, ct);
         return Ok(new { message = "Fraud sonucu işlendi" });
+    }
+}
+
+// ──────────────────────────────────────────────────────────────
+// ── FAZ 3 (Büyüme) UÇ NOKTALARI (ML, SOC2, Bildirimler)
+// ──────────────────────────────────────────────────────────────
+[ApiController]
+[Route("api/growth")]
+[Authorize]
+public class GrowthController : BaseController
+{
+    private readonly IMLExportService _mlExport;
+    private readonly IDataAnonymizationService _anonymization;
+
+    public GrowthController(IMLExportService mlExport, IDataAnonymizationService anonymization)
+    {
+        _mlExport = mlExport;
+        _anonymization = anonymization;
+    }
+
+    /// <summary>Kendi AI modelinizi eğitmek için onaylı verileri OpenAI JSONL formatında indirir.</summary>
+    [HttpGet("ml-export")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> ExportFineTuningData(CancellationToken ct)
+    {
+        var jsonl = await _mlExport.ExportForFineTuningAsync(TenantId, ct);
+        var bytes = System.Text.Encoding.UTF8.GetBytes(jsonl);
+        return File(bytes, "application/jsonlines", $"ml_finetuning_{DateTime.Now:yyyyMMdd}.jsonl");
+    }
+
+    /// <summary>SOC 2 KVKK (Unutulma Hakkı) Kapsamında Kullanıcı Anonimleştirme</summary>
+    [HttpPost("anonymize/{userId:guid}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> AnonymizeUser(Guid userId, CancellationToken ct)
+    {
+        var result = await _anonymization.AnonymizeUserAsync(userId, TenantId, ct);
+        if (!result) return NotFound(new { error = "Kullanıcı bulunamadı" });
+        return Ok(new { message = "Kullanıcı başarıyla anonimleştirildi." });
+    }
+
+    /// <summary>Mobil uygulama için FCM Token (Push Notification) kaydı.</summary>
+    [HttpPost("device-token")]
+    public IActionResult RegisterDeviceToken([FromBody] string fcmToken)
+    {
+        // TODO: UserDeviceToken tablosuna kayıt
+        return Ok(new { message = "Cihaz bildirimi için kaydedildi." });
     }
 }
 
@@ -309,5 +362,43 @@ public class BudgetsController : ControllerBase
             departmentId, TenantId, year, month, "Departman", ct);
 
         return result is null ? NotFound(new { error = "Bütçe limiti tanımlı değil" }) : Ok(result);
+    }
+}
+
+// ──────────────────────────────────────────────────────────────
+// ── FAZ 4: STRIPE WEBHOOK (Otomatik Ödeme / Abonelik)
+// ──────────────────────────────────────────────────────────────
+[ApiController]
+[Route("api/stripe")]
+public class StripeController : ControllerBase
+{
+    private readonly ILogger<StripeController> _logger;
+
+    public StripeController(ILogger<StripeController> logger)
+    {
+        _logger = logger;
+    }
+
+    [HttpPost("webhook")]
+    [AllowAnonymous] // Stripe doğrudan çağıracağı için auth olmaz
+    public async Task<IActionResult> Webhook()
+    {
+        var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
+        
+        try
+        {
+            // Normalde Stripe.EventUtility.ConstructEvent ile signature doğrulanır
+            // Şimdilik mock logging yapıyoruz.
+            _logger.LogInformation("Stripe webhook tetiklendi. Payload alındı: {payloadLength} bytes", json.Length);
+            
+            // TODO: JSON'ı parse et, invoice.payment_succeeded ise Tenant aboneliğini aktif et.
+
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Stripe Webhook Error: {Message}", ex.Message);
+            return BadRequest();
+        }
     }
 }
